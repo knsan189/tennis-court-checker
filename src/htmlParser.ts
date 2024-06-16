@@ -3,11 +3,19 @@ import * as cheerio from "cheerio";
 export interface CourtInfo {
   title: string;
   availableDates: AvailableDate[];
+  month: number;
 }
 
 export interface AvailableDate {
+  month: number;
   date: number;
-  times: string[];
+  availableTimes: AvailableTime[];
+}
+
+export interface AvailableTime {
+  month: number;
+  date: number;
+  time: string;
 }
 
 class HTMLParser {
@@ -25,7 +33,7 @@ class HTMLParser {
     const $ = cheerio.load(htmlString);
     const select = $("#flag");
     const option = $("option:selected", select).text();
-    const courtInfo: CourtInfo = { title: option, availableDates: [] };
+    const courtInfo: CourtInfo = { title: option, month, availableDates: [] };
     const calendar = $(".calendar");
     $("td", calendar).each((i, el) => {
       const td = $(el);
@@ -33,14 +41,14 @@ class HTMLParser {
       const today = new Date().getDate();
       if (date <= today || !this.checkDateIsWeekend(date, month)) return;
       const ul = $("ul", td);
-      const availableTimes: string[] = [];
+      const availableTimes: AvailableTime[] = [];
 
       $("li.blu", ul).each((i, el) => {
         const li = $(el);
-        const time = li.text().trim().replace(this.regex, "");
-        availableTimes.push(time);
+        const time = li.text().trim().replace(this.regex, "").replace(" [신청]", "");
+        availableTimes.push({ time, date, month });
       });
-      courtInfo.availableDates.push({ date, times: availableTimes });
+      courtInfo.availableDates.push({ date, month, availableTimes });
     });
 
     return courtInfo;

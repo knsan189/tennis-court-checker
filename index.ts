@@ -1,4 +1,4 @@
-import CourtChecker from "./src/courtChecker";
+import CourtChecker from "./src/courtChecker.js";
 
 process.title = "tennisCourtChecker";
 

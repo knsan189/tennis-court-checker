@@ -38,7 +38,7 @@ export default class Mailer {
   public async sendMail(text: string) {
     try {
       await this.transporter.sendMail({ ...this.mailOptions, text });
-      console.log("메일 전송 성공!");
+      console.log("[메일 전송 성공]", new Date().toLocaleString());
     } catch (error) {
       console.error("메일 전송 실패!", error);
     }

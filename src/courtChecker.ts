@@ -1,5 +1,5 @@
 import Axios from "axios";
-import HTMLParser, { CourtInfo } from "./htmlParser.js";
+import HTMLParser, { AvailableDate, AvailableTime, CourtInfo } from "./htmlParser.js";
 import Mailer from "./mailer.js";
 import { configDotenv } from "dotenv";
 
@@ -10,6 +10,8 @@ const API_URL = process.env.API_URL;
 if (!API_URL) {
   throw new Error("환경변수가 설정되지 않았습니다.");
 }
+
+const DateSet = new Set<string>();
 
 export default class CourtChecker {
   private axios;
@@ -52,10 +54,71 @@ export default class CourtChecker {
     this.mailer.sendMail(text);
   }
 
+  private checkIsMailSended(title: string, month: number, date: number, time: string) {
+    const key = `${title}-${month}-${date}-${time}`;
+    return DateSet.has(key);
+  }
+
   private async checkAvailableTime(courtInfos: CourtInfo[]) {
-    // 예약 가능한 시간이 있는지 체크
-    // 있으면 이메일 발송
-    // 없으면 아무것도 하지 않음
+    const availableCourts: CourtInfo[] = [];
+
+    courtInfos.forEach((courtInfo) => {
+      const availableCourt: CourtInfo = {
+        title: courtInfo.title,
+        month: courtInfo.month,
+        availableDates: [],
+      };
+
+      courtInfo.availableDates.forEach((availableDate) => {
+        if (availableDate.availableTimes.length === 0) return;
+
+        const newAvailableDate: AvailableDate = {
+          month: availableDate.month,
+          date: availableDate.date,
+          availableTimes: [],
+        };
+
+        availableDate.availableTimes.forEach((availableTime) => {
+          if (
+            this.checkIsMailSended(
+              courtInfo.title,
+              availableTime.month,
+              availableTime.date,
+              availableTime.time,
+            )
+          )
+            return;
+          newAvailableDate.availableTimes.push(availableTime);
+          DateSet.add(`${availableTime.month}-${availableTime.date}-${availableTime.time}`);
+        });
+        availableCourt.availableDates.push(newAvailableDate);
+      });
+      availableCourts.push(availableCourt);
+    });
+
+    if (availableCourts.length === 0) return;
+
+    const text = availableCourts
+      .map((court) => {
+        const dateText = court.availableDates
+          .map((date) => {
+            const timeText = date.availableTimes.map((time) => `${time.time}`).join("\n");
+            return `${date.month}월 ${date.date}일\n${timeText}`;
+          })
+          .join("\n");
+        return `${court.title}\n${dateText}\n`;
+      })
+      .join("\n");
+
+    console.log(
+      "[메일 전송]",
+      new Date().toLocaleString(),
+      "가능한 코트",
+      availableCourts.length,
+      "곳",
+    );
+
+    this.sendMail(text);
   }
 
   private async getAvailableTime() {
