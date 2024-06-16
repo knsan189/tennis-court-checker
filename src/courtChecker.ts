@@ -63,6 +63,11 @@ export default class CourtChecker {
     const availableCourts: CourtInfo[] = [];
 
     courtInfos.forEach((courtInfo) => {
+      if (courtInfo.availableDates.length === 0) {
+        return;
+      }
+
+      console.log(courtInfo.availableDates);
       const availableCourt: CourtInfo = {
         title: courtInfo.title,
         month: courtInfo.month,
@@ -96,7 +101,10 @@ export default class CourtChecker {
       availableCourts.push(availableCourt);
     });
 
-    if (availableCourts.length === 0) return;
+    if (availableCourts.length === 0) {
+      console.log("[예약 가능한 코트가 없습니다.]", new Date().toLocaleString());
+      return;
+    }
 
     const text = availableCourts
       .map((court) => {

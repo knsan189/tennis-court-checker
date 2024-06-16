@@ -48,7 +48,7 @@ class HTMLParser {
         const time = li.text().trim().replace(this.regex, "").replace(" [신청]", "");
         availableTimes.push({ time, date, month });
       });
-      courtInfo.availableDates.push({ date, month, availableTimes });
+      if (availableTimes.length > 0) courtInfo.availableDates.push({ date, month, availableTimes });
     });
 
     return courtInfo;
