@@ -1,9 +1,10 @@
 import { configDotenv } from "dotenv";
 import nodemailer from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
+import Logger from "./logger.js";
 
 configDotenv();
-
+const logger = Logger.getInstance();
 const EMAIL_SERVICE = process.env.EMAIL_SERVICE;
 const EMAIL_USERNAME = process.env.EMAIL_USERNAME;
 const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD;
@@ -38,9 +39,10 @@ export default class Mailer {
   public async sendMail(text: string) {
     try {
       await this.transporter.sendMail({ ...this.mailOptions, text });
-      console.log("[메일 전송 성공]", new Date().toLocaleString());
+      logger.log("메일 전송 성공");
     } catch (error) {
-      console.error("메일 전송 실패!", error);
+      logger.error("메일 전송 실패");
+      console.error(error);
     }
   }
 }

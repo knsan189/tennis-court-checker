@@ -2,8 +2,10 @@ import Axios from "axios";
 import HTMLParser, { AvailableDate, AvailableTime, CourtInfo } from "./htmlParser.js";
 import Mailer from "./mailer.js";
 import { configDotenv } from "dotenv";
+import Logger from "./logger.js";
 
 configDotenv();
+const logger = Logger.getInstance();
 
 const API_URL = process.env.API_URL;
 
@@ -15,7 +17,7 @@ const DateSet = new Set<string>();
 
 export default class CourtChecker {
   private axios;
-  private intervalTime = 1000 * 60 * 60 * 2; // 2시간 간격으로 실행
+  private intervalTime = 1000 * 60 * 30; // 30분 간격으로 실행
   private courtNumbers = ["07", "08", "09", "10", "11", "12", "13", "14"];
   private targetMonths: number[] = [];
 
@@ -86,7 +88,7 @@ export default class CourtChecker {
         availableDate.availableTimes.forEach((availableTime) => {
           if (
             this.checkIsMailSended(
-              courtInfo.title,
+              availableCourt.title,
               availableTime.month,
               availableTime.date,
               availableTime.time,
@@ -94,7 +96,9 @@ export default class CourtChecker {
           )
             return;
           newAvailableDate.availableTimes.push(availableTime);
-          DateSet.add(`${availableTime.month}-${availableTime.date}-${availableTime.time}`);
+          DateSet.add(
+            `${availableCourt.title}-${availableTime.month}-${availableTime.date}-${availableTime.time}`,
+          );
         });
         availableCourt.availableDates.push(newAvailableDate);
       });
@@ -102,7 +106,7 @@ export default class CourtChecker {
     });
 
     if (availableCourts.length === 0) {
-      console.log("[예약 가능한 코트가 없습니다.]", new Date().toLocaleString());
+      logger.log("예약 가능한 코트가 없습니다.");
       return;
     }
 
@@ -118,26 +122,19 @@ export default class CourtChecker {
       })
       .join("\n");
 
-    console.log(
-      "[메일 전송]",
-      new Date().toLocaleString(),
-      "가능한 코트",
-      availableCourts.length,
-      "곳",
-    );
-
+    logger.log(`예약 가능한 코트 총 ${availableCourts.length} 곳`);
     this.sendMail(text);
   }
 
   private async getAvailableTime() {
-    const currentTime = new Date();
-    console.log("[시작]", currentTime.toLocaleString());
+    logger.log("시작");
     const promiseArr = this.targetMonths
       .map((month) => this.courtNumbers.map((courtNumber) => this.fetchHTML(courtNumber, month)))
       .flat();
 
     const courtInfos = await Promise.all(promiseArr);
     this.checkAvailableTime(courtInfos);
+    logger.log("종료");
   }
 
   public startChecking() {
