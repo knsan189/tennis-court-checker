@@ -13,6 +13,7 @@ if (!API_URL) {
   throw new Error("환경변수가 설정되지 않았습니다.");
 }
 
+// 중복 메일 전송 방지를 위한 Set
 const DateSet = new Set<string>();
 
 export default class CourtChecker {
@@ -20,12 +21,11 @@ export default class CourtChecker {
   private intervalTime = 1000 * 60 * 30; // 30분 간격으로 실행
   private courtNumbers = ["07", "08", "09", "10", "11", "12", "13", "14"];
   private targetMonths: number[] = [];
-
   private htmlParser = new HTMLParser();
   private mailer = new Mailer();
 
   constructor() {
-    const URL = "https://www.auc.or.kr/reservation/program/rental/calendarView";
+    const URL = API_URL;
     this.axios = Axios.create({
       baseURL: URL,
       headers: {
@@ -38,7 +38,6 @@ export default class CourtChecker {
 
   private async fetchHTML(courtNumber: string, month: number) {
     const response = await this.axios({
-      method: "get",
       params: {
         types: "8",
         flag: courtNumber,
@@ -52,16 +51,12 @@ export default class CourtChecker {
     return this.htmlParser.parseHTML(response.data, month);
   }
 
-  private async sendMail(text: string) {
-    this.mailer.sendMail(text);
-  }
-
   private checkIsMailSended(title: string, month: number, date: number, time: string) {
     const key = `${title}-${month}-${date}-${time}`;
     return DateSet.has(key);
   }
 
-  private async checkAvailableTime(courtInfos: CourtInfo[]) {
+  private getAvailableCourts(courtInfos: CourtInfo[]): CourtInfo[] {
     const availableCourts: CourtInfo[] = [];
 
     courtInfos.forEach((courtInfo) => {
@@ -69,8 +64,7 @@ export default class CourtChecker {
         return;
       }
 
-      console.log(courtInfo.availableDates);
-      const availableCourt: CourtInfo = {
+      const newAvailableCourt: CourtInfo = {
         title: courtInfo.title,
         month: courtInfo.month,
         availableDates: [],
@@ -88,7 +82,7 @@ export default class CourtChecker {
         availableDate.availableTimes.forEach((availableTime) => {
           if (
             this.checkIsMailSended(
-              availableCourt.title,
+              newAvailableCourt.title,
               availableTime.month,
               availableTime.date,
               availableTime.time,
@@ -97,20 +91,26 @@ export default class CourtChecker {
             return;
           newAvailableDate.availableTimes.push(availableTime);
           DateSet.add(
-            `${availableCourt.title}-${availableTime.month}-${availableTime.date}-${availableTime.time}`,
+            `${newAvailableCourt.title}-${availableTime.month}-${availableTime.date}-${availableTime.time}`,
           );
         });
-        availableCourt.availableDates.push(newAvailableDate);
+        if (newAvailableDate.availableTimes.length > 0)
+          newAvailableCourt.availableDates.push(newAvailableDate);
       });
-      availableCourts.push(availableCourt);
+      if (newAvailableCourt.availableDates.length > 0) availableCourts.push(newAvailableCourt);
     });
 
     if (availableCourts.length === 0) {
       logger.log("예약 가능한 코트가 없습니다.");
-      return;
+    } else {
+      logger.log(`예약 가능한 코트 총 ${availableCourts.length} 곳`);
     }
+    return availableCourts;
+  }
 
-    const text = availableCourts
+  private async sendMail(courts: CourtInfo[]) {
+    if (courts.length === 0) return;
+    const text = courts
       .map((court) => {
         const dateText = court.availableDates
           .map((date) => {
@@ -121,24 +121,23 @@ export default class CourtChecker {
         return `${court.title}\n${dateText}\n`;
       })
       .join("\n");
-
-    logger.log(`예약 가능한 코트 총 ${availableCourts.length} 곳`);
-    this.sendMail(text);
+    await this.mailer.sendMail(text);
   }
 
-  private async getAvailableTime() {
+  private async checkAllCourts() {
     logger.log("시작");
     const promiseArr = this.targetMonths
       .map((month) => this.courtNumbers.map((courtNumber) => this.fetchHTML(courtNumber, month)))
       .flat();
 
     const courtInfos = await Promise.all(promiseArr);
-    this.checkAvailableTime(courtInfos);
+    const availableCourts = this.getAvailableCourts(courtInfos);
+    await this.sendMail(availableCourts);
     logger.log("종료");
   }
 
   public startChecking() {
-    setInterval(() => this.getAvailableTime(), this.intervalTime);
-    this.getAvailableTime();
+    setInterval(() => this.checkAllCourts(), this.intervalTime);
+    this.checkAllCourts();
   }
 }

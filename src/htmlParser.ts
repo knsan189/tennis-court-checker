@@ -42,7 +42,6 @@ class HTMLParser {
       if (date <= today || !this.checkDateIsWeekend(date, month)) return;
       const ul = $("ul", td);
       const availableTimes: AvailableTime[] = [];
-
       $("li.blu", ul).each((i, el) => {
         const li = $(el);
         const time = li.text().trim().replace(this.regex, "").replace(" [신청]", "");

@@ -11,10 +11,10 @@ export default class Logger {
   }
 
   log(message: string) {
-    console.log(`${new Date().toLocaleString()}`, message);
+    console.log(`[${new Date().toLocaleString()}]`, message);
   }
 
   error(message: string) {
-    console.error(`${new Date().toLocaleString()}`, message);
+    console.error(`[${new Date().toLocaleString()}]`, message);
   }
 }
