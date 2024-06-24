@@ -21,11 +21,12 @@ export interface AvailableTime {
 class HTMLParser {
   private regex = /\n|\t/g;
 
+  private today = new Date();
+
   private checkDateIsWeekend(date: number, month: number): boolean {
-    const targetDay = new Date();
-    targetDay.setDate(date);
-    targetDay.setMonth(month - 1);
-    const dayOfWeek = targetDay.getDay();
+    this.today.setDate(date);
+    this.today.setMonth(month - 1);
+    const dayOfWeek = this.today.getDay();
     return dayOfWeek === 0 || dayOfWeek === 6;
   }
 
@@ -35,15 +36,15 @@ class HTMLParser {
     const option = $("option:selected", select).text();
     const courtInfo: CourtInfo = { title: option, month, availableDates: [] };
     const calendar = $(".calendar");
-    $("td", calendar).each((i, el) => {
-      const td = $(el);
+    $("td", calendar).each((i, tdElement) => {
+      const td = $(tdElement);
       const date = Number($("span.day", td).text().trim());
       const today = new Date().getDate();
       if (date <= today || !this.checkDateIsWeekend(date, month)) return;
       const ul = $("ul", td);
       const availableTimes: AvailableTime[] = [];
-      $("li.blu", ul).each((i, el) => {
-        const li = $(el);
+      $("li.blu", ul).each((j, liElement) => {
+        const li = $(liElement);
         const time = li.text().trim().replace(this.regex, "").replace(" [신청]", "");
         availableTimes.push({ time, date, month });
       });

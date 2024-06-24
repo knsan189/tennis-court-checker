@@ -5,10 +5,7 @@ import Logger from "./logger.js";
 
 configDotenv();
 const logger = Logger.getInstance();
-const EMAIL_SERVICE = process.env.EMAIL_SERVICE;
-const EMAIL_USERNAME = process.env.EMAIL_USERNAME;
-const EMAIL_PASSWORD = process.env.EMAIL_PASSWORD;
-const RECEIVER_EMAIL = process.env.RECEIVER_EMAIL;
+const { EMAIL_SERVICE, EMAIL_USERNAME, EMAIL_PASSWORD, RECEIVER_EMAIL } = process.env;
 
 if (!EMAIL_SERVICE || !EMAIL_USERNAME || !EMAIL_PASSWORD || !RECEIVER_EMAIL) {
   throw new Error("환경변수가 설정되지 않았습니다.");
@@ -16,6 +13,7 @@ if (!EMAIL_SERVICE || !EMAIL_USERNAME || !EMAIL_PASSWORD || !RECEIVER_EMAIL) {
 
 export default class Mailer {
   private transporter;
+
   private mailOptions;
 
   constructor() {
@@ -23,14 +21,14 @@ export default class Mailer {
       service: EMAIL_SERVICE,
       auth: {
         user: EMAIL_USERNAME,
-        pass: EMAIL_PASSWORD,
-      },
+        pass: EMAIL_PASSWORD
+      }
     };
 
     this.mailOptions = {
-      from: EMAIL_USERNAME,
+      from: `Tennis Court Checker <${EMAIL_USERNAME}>`,
       to: RECEIVER_EMAIL,
-      subject: "테니스 예약 가능 시간",
+      subject: "테니스 예약 가능 시간"
     };
 
     this.transporter = nodemailer.createTransport(configOptions);
@@ -42,7 +40,6 @@ export default class Mailer {
       logger.log("메일 전송 성공");
     } catch (error) {
       logger.error("메일 전송 실패");
-      console.error(error);
     }
   }
 }

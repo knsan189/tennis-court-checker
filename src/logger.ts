@@ -1,7 +1,12 @@
+/* eslint-disable no-console */
 export default class Logger {
   private static instance: Logger;
 
-  private constructor() {}
+  dateString: string;
+
+  private constructor() {
+    this.dateString = `[${new Date().toLocaleString()}]`;
+  }
 
   static getInstance() {
     if (!Logger.instance) {
@@ -11,10 +16,10 @@ export default class Logger {
   }
 
   log(message: string) {
-    console.log(`[${new Date().toLocaleString()}]`, message);
+    console.log(this.dateString, message);
   }
 
   error(message: string) {
-    console.error(`[${new Date().toLocaleString()}]`, message);
+    console.error(this.dateString, message);
   }
 }

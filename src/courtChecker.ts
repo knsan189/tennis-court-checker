@@ -1,36 +1,41 @@
 import Axios from "axios";
-import HTMLParser, { AvailableDate, AvailableTime, CourtInfo } from "./htmlParser.js";
-import Mailer from "./mailer.js";
 import { configDotenv } from "dotenv";
+import HTMLParser, { AvailableDate, CourtInfo } from "./htmlParser.js";
+import Mailer from "./mailer.js";
 import Logger from "./logger.js";
 
 configDotenv();
 const logger = Logger.getInstance();
 
-const API_URL = process.env.API_URL;
+const { API_URL } = process.env;
 
 if (!API_URL) {
   throw new Error("환경변수가 설정되지 않았습니다.");
 }
 
-// 중복 메일 전송 방지를 위한 Set
-const DateSet = new Set<string>();
-
 export default class CourtChecker {
   private axios;
+
   private intervalTime = 1000 * 60 * 30; // 30분 간격으로 실행
+
   private courtNumbers = ["07", "08", "09", "10", "11", "12", "13", "14"];
+
   private targetMonths: number[] = [];
+
   private htmlParser = new HTMLParser();
+
   private mailer = new Mailer();
+
+  /** 중복 메일 전송 방지를 위한 Set */
+  private DateSet = new Set<string>();
 
   constructor() {
     const URL = API_URL;
     this.axios = Axios.create({
       baseURL: URL,
       headers: {
-        "Content-Type": "application/json",
-      },
+        "Content-Type": "application/json"
+      }
     });
     const thisMonth = new Date().getMonth() + 1;
     this.targetMonths.push(thisMonth, thisMonth > 11 ? 1 : thisMonth + 1);
@@ -44,8 +49,8 @@ export default class CourtChecker {
         menuLevel: 2,
         menuNo: 351,
         year: 2024,
-        month,
-      },
+        month
+      }
     });
 
     return this.htmlParser.parseHTML(response.data, month);
@@ -53,7 +58,7 @@ export default class CourtChecker {
 
   private checkIsMailSended(title: string, month: number, date: number, time: string) {
     const key = `${title}-${month}-${date}-${time}`;
-    return DateSet.has(key);
+    return this.DateSet.has(key);
   }
 
   private getAvailableCourts(courtInfos: CourtInfo[]): CourtInfo[] {
@@ -67,7 +72,7 @@ export default class CourtChecker {
       const newAvailableCourt: CourtInfo = {
         title: courtInfo.title,
         month: courtInfo.month,
-        availableDates: [],
+        availableDates: []
       };
 
       courtInfo.availableDates.forEach((availableDate) => {
@@ -76,7 +81,7 @@ export default class CourtChecker {
         const newAvailableDate: AvailableDate = {
           month: availableDate.month,
           date: availableDate.date,
-          availableTimes: [],
+          availableTimes: []
         };
 
         availableDate.availableTimes.forEach((availableTime) => {
@@ -85,13 +90,13 @@ export default class CourtChecker {
               newAvailableCourt.title,
               availableTime.month,
               availableTime.date,
-              availableTime.time,
+              availableTime.time
             )
           )
             return;
           newAvailableDate.availableTimes.push(availableTime);
-          DateSet.add(
-            `${newAvailableCourt.title}-${availableTime.month}-${availableTime.date}-${availableTime.time}`,
+          this.DateSet.add(
+            `${newAvailableCourt.title}-${availableTime.month}-${availableTime.date}-${availableTime.time}`
           );
         });
         if (newAvailableDate.availableTimes.length > 0)
@@ -121,19 +126,23 @@ export default class CourtChecker {
         return `${court.title}\n${dateText}\n`;
       })
       .join("\n");
-    await this.mailer.sendMail(text);
+    await this.mailer.sendMail(text, `예약 가능한 코트 총 ${courts.length} 곳`);
   }
 
   private async checkAllCourts() {
-    logger.log("시작");
-    const promiseArr = this.targetMonths
-      .map((month) => this.courtNumbers.map((courtNumber) => this.fetchHTML(courtNumber, month)))
-      .flat();
+    try {
+      logger.log("시작");
+      const promiseArr = this.targetMonths
+        .map((month) => this.courtNumbers.map((courtNumber) => this.fetchHTML(courtNumber, month)))
+        .flat();
 
-    const courtInfos = await Promise.all(promiseArr);
-    const availableCourts = this.getAvailableCourts(courtInfos);
-    await this.sendMail(availableCourts);
-    logger.log("종료");
+      const courtInfos = await Promise.all(promiseArr);
+      const availableCourts = this.getAvailableCourts(courtInfos);
+      await this.sendMail(availableCourts);
+      logger.log("종료");
+    } catch (error) {
+      logger.error("에러 발생");
+    }
   }
 
   public startChecking() {
