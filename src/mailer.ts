@@ -34,9 +34,9 @@ export default class Mailer {
     this.transporter = nodemailer.createTransport(configOptions);
   }
 
-  public async sendMail(text: string) {
+  public async sendMail(text: string, subject: string) {
     try {
-      await this.transporter.sendMail({ ...this.mailOptions, text });
+      await this.transporter.sendMail({ ...this.mailOptions, text, subject });
       logger.log("메일 전송 성공");
     } catch (error) {
       logger.error("메일 전송 실패");
