@@ -2,12 +2,6 @@
 export default class Logger {
   private static instance: Logger;
 
-  dateString: string;
-
-  private constructor() {
-    this.dateString = `[${new Date().toLocaleString()}]`;
-  }
-
   static getInstance() {
     if (!Logger.instance) {
       Logger.instance = new Logger();
@@ -16,10 +10,10 @@ export default class Logger {
   }
 
   log(message: string) {
-    console.log(this.dateString, message);
+    console.log(`[${new Date().toLocaleString()}]`, message);
   }
 
   error(message: string) {
-    console.error(this.dateString, message);
+    console.error(`[${new Date().toLocaleString()}]`, message);
   }
 }
