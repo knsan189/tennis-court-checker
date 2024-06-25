@@ -7,16 +7,16 @@ import Logger from "./logger.js";
 configDotenv();
 const logger = Logger.getInstance();
 
-const { API_URL } = process.env;
+const { API_URL, INTERVAL_TIME } = process.env;
 
-if (!API_URL) {
+if (!API_URL || !INTERVAL_TIME) {
   throw new Error("환경변수가 설정되지 않았습니다.");
 }
 
 export default class CourtChecker {
   private axios;
 
-  private intervalTime = 1000 * 60 * 30; // 30분 간격으로 실행
+  private intervalTime = 1000 * 60 * Number(INTERVAL_TIME);
 
   private courtNumbers = ["07", "08", "09", "10", "11", "12", "13", "14"];
 
@@ -146,6 +146,7 @@ export default class CourtChecker {
   }
 
   public startChecking() {
+    logger.log("start checking", this.intervalTime, "분 간격으로 실행");
     setInterval(() => this.checkAllCourts(), this.intervalTime);
     this.checkAllCourts();
   }

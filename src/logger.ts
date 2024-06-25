@@ -9,8 +9,8 @@ export default class Logger {
     return Logger.instance;
   }
 
-  log(message: string) {
-    console.log(`[${new Date().toLocaleString()}]`, message);
+  log(...message: (string | number)[]) {
+    console.log(`[${new Date().toLocaleString()}]`, ...message);
   }
 
   error(message: string) {
