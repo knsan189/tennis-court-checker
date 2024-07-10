@@ -1,4 +1,6 @@
 import * as cheerio from "cheerio";
+import { format } from "date-fns";
+import { ko } from "date-fns/locale";
 import html from "html-template-tag";
 import { RESERVATION_URL } from "./config.js";
 
@@ -6,7 +8,7 @@ export interface CourtInfo {
   title: string;
   availableDates: AvailableDate[];
   month: number;
-  flag: number;
+  flag: string;
 }
 
 export interface AvailableDate {
@@ -33,7 +35,7 @@ class HTMLParser {
     return dayOfWeek === 0 || dayOfWeek === 6;
   }
 
-  public parseHTML(htmlString: string, month: number): CourtInfo {
+  public parseHTML(htmlString: string, month: number, courtNumber: string): CourtInfo {
     const $ = cheerio.load(htmlString);
     const select = $("#flag");
     const option = $("option:selected", select);
@@ -42,7 +44,7 @@ class HTMLParser {
       title: option.text().trim(),
       month,
       availableDates: [],
-      flag: Number(option.val())
+      flag: courtNumber
     };
 
     const calendar = $(".calendar");
@@ -66,7 +68,7 @@ class HTMLParser {
 
   private createLink(court: CourtInfo): string {
     const link = new URL(RESERVATION_URL || "");
-    link.searchParams.append("flag", court.flag.toString());
+    link.searchParams.append("flag", court.flag);
     link.searchParams.append("month", court.month.toString());
     link.searchParams.append("year", this.today.getFullYear().toString());
     link.searchParams.append("types", "8");
@@ -95,24 +97,26 @@ class HTMLParser {
                     >${court.title}</a
                   >
                   <ul style="list-style-type: none; padding: 0; margin-top: 16px;">
-                    ${court.availableDates.map(
-                      (date) =>
-                        html` <li
-                          style="background-color: #f8f9fa; margin-bottom: 10px; padding: 10px; border-radius: 5px;"
-                        >
-                          ${date.month.toString()}월 ${date.date.toString()}일
-                          <ul style="list-style-type: none; padding: 0; margin-top: 8px;">
-                            ${date.availableTimes.map(
-                              (time) =>
-                                html`<li
-                                  style="display: inline-block; margin-right: 10px; background-color: #f8f9fa; padding: 10px; border-radius: 5px;"
-                                >
-                                  ${time.time}
-                                </li>`
-                            )}
-                          </ul>
-                        </li>`
-                    )}
+                    ${court.availableDates.map((date) => {
+                      const targetDate = new Date();
+                      targetDate.setMonth(date.month - 1);
+                      targetDate.setDate(date.date);
+                      return html` <li
+                        style="background-color: #f8f9fa; margin-bottom: 10px; padding: 10px; border-radius: 5px;"
+                      >
+                        ${format(targetDate, "MMM do (E)", { locale: ko })}
+                        <ul style="list-style-type: none; padding: 0; margin-top: 8px;">
+                          ${date.availableTimes.map(
+                            (time) =>
+                              html`<li
+                                style="display: inline-block; margin-right: 10px; background-color: #f8f9fa; padding: 10px; border-radius: 5px;"
+                              >
+                                ${time.time}
+                              </li>`
+                          )}
+                        </ul>
+                      </li>`;
+                    })}
                   </ul>
                 </li>`;
               })}

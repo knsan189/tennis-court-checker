@@ -46,7 +46,7 @@ export default class CourtChecker {
       }
     });
 
-    return this.htmlParser.parseHTML(response.data, month);
+    return this.htmlParser.parseHTML(response.data, month, courtNumber);
   }
 
   private checkIsMailSended(title: string, month: number, date: number, time: string) {
