@@ -1,17 +1,10 @@
 import Axios from "axios";
-import { configDotenv } from "dotenv";
 import HTMLParser, { AvailableDate, CourtInfo } from "./htmlParser.js";
 import Mailer from "./mailer.js";
 import Logger from "./logger.js";
+import { API_URL, INTERVAL_TIME } from "./config.js";
 
-configDotenv();
 const logger = Logger.getInstance();
-
-const { API_URL, INTERVAL_TIME } = process.env;
-
-if (!API_URL || !INTERVAL_TIME) {
-  throw new Error("환경변수가 설정되지 않았습니다.");
-}
 
 export default class CourtChecker {
   private axios;
@@ -72,6 +65,7 @@ export default class CourtChecker {
       const newAvailableCourt: CourtInfo = {
         title: courtInfo.title,
         month: courtInfo.month,
+        flag: courtInfo.flag,
         availableDates: []
       };
 
@@ -115,18 +109,8 @@ export default class CourtChecker {
 
   private async sendMail(courts: CourtInfo[]) {
     if (courts.length === 0) return;
-    const text = courts
-      .map((court) => {
-        const dateText = court.availableDates
-          .map((date) => {
-            const timeText = date.availableTimes.map((time) => `${time.time}`).join("\n");
-            return `${date.month}월 ${date.date}일\n${timeText}`;
-          })
-          .join("\n");
-        return `${court.title}\n${dateText}\n`;
-      })
-      .join("\n");
-    await this.mailer.sendMail(text, `예약 가능한 코트 총 ${courts.length} 곳`);
+    const html = this.htmlParser.generateHTML(courts);
+    await this.mailer.sendMail(html, `예약 가능한 코트 총 ${courts.length} 곳`);
   }
 
   private async checkAllCourts() {
@@ -138,6 +122,7 @@ export default class CourtChecker {
 
       const courtInfos = await Promise.all(promiseArr);
       const availableCourts = this.getAvailableCourts(courtInfos);
+      console.log(availableCourts);
       await this.sendMail(availableCourts);
       logger.log("종료");
     } catch (error) {
@@ -146,7 +131,7 @@ export default class CourtChecker {
   }
 
   public startChecking() {
-    logger.log("start checking", this.intervalTime, "분 간격으로 실행");
+    logger.log("start checking", INTERVAL_TIME || 0, "분 간격으로 실행");
     setInterval(() => this.checkAllCourts(), this.intervalTime);
     this.checkAllCourts();
   }

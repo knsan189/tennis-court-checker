@@ -36,7 +36,7 @@ export default class Mailer {
 
   public async sendMail(text: string, subject: string) {
     try {
-      await this.transporter.sendMail({ ...this.mailOptions, text, subject });
+      await this.transporter.sendMail({ ...this.mailOptions, html: text, subject });
       logger.log("메일 전송 성공");
     } catch (error) {
       logger.error("메일 전송 실패");
