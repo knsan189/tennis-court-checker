@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import html from "html-template-tag";
-import { RESERVATION_URL } from "./config";
+import { RESERVATION_URL } from "./config.js";
 
 export interface CourtInfo {
   title: string;

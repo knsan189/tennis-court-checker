@@ -1,7 +1,4 @@
 #!/bin/bash
+echo "Shutting Down tennisCourt Server" &&
+pkill -f "tennisCourt"
 
-pgrep tennisCourtChecker | xargs kill
-
-echo "Server Off"
-
-exit 0

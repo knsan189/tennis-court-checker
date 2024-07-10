@@ -1,14 +1,30 @@
 import { configDotenv } from "dotenv";
-import Logger from "./logger";
+import Logger from "./logger.js";
 
 configDotenv();
 
-export const { API_URL, INTERVAL_TIME, RESERVATION_URL } = process.env;
+export const {
+  API_URL = "",
+  INTERVAL_TIME = "",
+  RESERVATION_URL = "",
+  EMAIL_SERVICE = "",
+  EMAIL_USERNAME = "",
+  EMAIL_PASSWORD = "",
+  RECEIVER_EMAIL = ""
+} = process.env;
 
 const logger = Logger.getInstance();
 
 const checkEnv = () => {
-  const object: { [key: string]: any } = { API_URL, INTERVAL_TIME, RESERVATION_URL };
+  const object: { [key: string]: any } = {
+    API_URL,
+    INTERVAL_TIME,
+    RESERVATION_URL,
+    EMAIL_SERVICE,
+    EMAIL_USERNAME,
+    EMAIL_PASSWORD,
+    RECEIVER_EMAIL
+  };
 
   Object.keys(object).forEach((key: string) => {
     if (!object[key]) {

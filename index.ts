@@ -1,6 +1,6 @@
 import CourtChecker from "./src/courtChecker.js";
 
-process.title = "tennisCourtChecker";
+process.title = "tennisCourt";
 
 const courtChecker = new CourtChecker();
 courtChecker.startChecking();

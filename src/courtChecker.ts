@@ -122,7 +122,6 @@ export default class CourtChecker {
 
       const courtInfos = await Promise.all(promiseArr);
       const availableCourts = this.getAvailableCourts(courtInfos);
-      console.log(availableCourts);
       await this.sendMail(availableCourts);
       logger.log("종료");
     } catch (error) {

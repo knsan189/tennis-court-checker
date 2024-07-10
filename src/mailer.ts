@@ -2,14 +2,10 @@ import { configDotenv } from "dotenv";
 import nodemailer from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import Logger from "./logger.js";
+import { EMAIL_PASSWORD, EMAIL_SERVICE, EMAIL_USERNAME, RECEIVER_EMAIL } from "./config.js";
 
 configDotenv();
 const logger = Logger.getInstance();
-const { EMAIL_SERVICE, EMAIL_USERNAME, EMAIL_PASSWORD, RECEIVER_EMAIL } = process.env;
-
-if (!EMAIL_SERVICE || !EMAIL_USERNAME || !EMAIL_PASSWORD || !RECEIVER_EMAIL) {
-  throw new Error("환경변수가 설정되지 않았습니다.");
-}
 
 export default class Mailer {
   private transporter;
