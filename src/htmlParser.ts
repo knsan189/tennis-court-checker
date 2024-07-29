@@ -32,7 +32,7 @@ class HTMLParser {
     this.today.setDate(date);
     this.today.setMonth(month - 1);
     const dayOfWeek = this.today.getDay();
-    const days = [0, 3, 6];
+    const days = [0, 4, 6];
     return days.includes(dayOfWeek);
   }
 
@@ -52,8 +52,7 @@ class HTMLParser {
     $("td", calendar).each((i, tdElement) => {
       const td = $(tdElement);
       const date = Number($("span.day", td).text().trim());
-      const today = new Date().getDate();
-      if (date <= today || !this.checkDateIsWeekend(date, month)) return;
+      if (!this.checkDateIsWeekend(date, month)) return;
       const ul = $("ul", td);
       const availableTimes: AvailableTime[] = [];
       $("li.blu", ul).each((j, liElement) => {
