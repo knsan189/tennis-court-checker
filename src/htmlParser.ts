@@ -32,7 +32,8 @@ class HTMLParser {
     this.today.setDate(date);
     this.today.setMonth(month - 1);
     const dayOfWeek = this.today.getDay();
-    return dayOfWeek === 0 || dayOfWeek === 6;
+    const days = [0, 3, 6];
+    return days.includes(dayOfWeek);
   }
 
   public parseHTML(htmlString: string, month: number, courtNumber: string): CourtInfo {
