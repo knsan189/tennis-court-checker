@@ -2,7 +2,13 @@ import { configDotenv } from "dotenv";
 import nodemailer from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import Logger from "./logger.js";
-import { EMAIL_PASSWORD, EMAIL_SERVICE, EMAIL_USERNAME, RECEIVER_EMAIL } from "./config.js";
+import {
+  EMAIL_PASSWORD,
+  EMAIL_SERVICE,
+  EMAIL_USERNAME,
+  MAIL_TITLE,
+  RECEIVER_EMAIL
+} from "./config.js";
 
 configDotenv();
 const logger = Logger.getInstance();
@@ -24,7 +30,7 @@ export default class Mailer {
     this.mailOptions = {
       from: `Tennis Court Checker <${EMAIL_USERNAME}>`,
       to: RECEIVER_EMAIL,
-      subject: "테니스 예약 가능 시간"
+      subject: MAIL_TITLE
     };
 
     this.transporter = nodemailer.createTransport(configOptions);

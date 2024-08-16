@@ -32,7 +32,7 @@ class HTMLParser {
     this.today.setDate(date);
     this.today.setMonth(month - 1);
     const dayOfWeek = this.today.getDay();
-    const days = [0, 4, 6];
+    const days = [0, 6];
     return days.includes(dayOfWeek);
   }
 

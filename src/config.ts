@@ -10,8 +10,12 @@ export const {
   EMAIL_SERVICE = "",
   EMAIL_USERNAME = "",
   EMAIL_PASSWORD = "",
-  RECEIVER_EMAIL = ""
+  RECEIVER_EMAIL = "",
+  MAIL_TITLE = "",
+  COURT_TYPE = ""
 } = process.env;
+
+export const COURT_FLAGS = process.env.COURT_FLAGS?.split(",").map((i) => i.trim()) || [];
 
 const logger = Logger.getInstance();
 
@@ -23,7 +27,9 @@ const checkEnv = () => {
     EMAIL_SERVICE,
     EMAIL_USERNAME,
     EMAIL_PASSWORD,
-    RECEIVER_EMAIL
+    RECEIVER_EMAIL,
+    MAIL_TITLE,
+    COURT_TYPE
   };
 
   Object.keys(object).forEach((key: string) => {

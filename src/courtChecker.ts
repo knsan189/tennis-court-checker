@@ -2,16 +2,17 @@ import Axios from "axios";
 import HTMLParser, { AvailableDate, CourtInfo } from "./htmlParser.js";
 import Mailer from "./mailer.js";
 import Logger from "./logger.js";
-import { API_URL, INTERVAL_TIME } from "./config.js";
+import { API_URL, COURT_FLAGS, COURT_TYPE, INTERVAL_TIME, MAIL_TITLE } from "./config.js";
 
 const logger = Logger.getInstance();
+let today = new Date();
 
 export default class CourtChecker {
   private axios;
 
   private intervalTime = 1000 * 60 * Number(INTERVAL_TIME);
 
-  private courtNumbers = ["07", "08", "09", "10", "11", "12", "13", "14"];
+  private courtNumbers = COURT_FLAGS;
 
   private targetMonths: number[] = [];
 
@@ -37,7 +38,7 @@ export default class CourtChecker {
   private async fetchHTML(courtNumber: string, month: number) {
     const response = await this.axios({
       params: {
-        types: "8",
+        types: COURT_TYPE,
         flag: courtNumber,
         menuLevel: 2,
         menuNo: 351,
@@ -110,12 +111,18 @@ export default class CourtChecker {
   private async sendMail(courts: CourtInfo[]) {
     if (courts.length === 0) return;
     const html = this.htmlParser.generateHTML(courts);
-    await this.mailer.sendMail(html, `예약 가능한 코트 총 ${courts.length} 곳`);
+    await this.mailer.sendMail(html, `${MAIL_TITLE} 예약 가능 코트 ${courts.length} 곳`);
   }
 
   private async checkAllCourts() {
     try {
       logger.log("시작");
+
+      if (today.getDate() !== new Date().getDate()) {
+        this.DateSet.clear();
+        today = new Date();
+      }
+
       const promiseArr = this.targetMonths
         .map((month) => this.courtNumbers.map((courtNumber) => this.fetchHTML(courtNumber, month)))
         .flat();
