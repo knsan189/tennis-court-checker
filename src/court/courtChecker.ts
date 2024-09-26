@@ -176,7 +176,7 @@ export default class CourtChecker {
       const courts = await this.getCourts();
       const availableCourts = this.getAvailableCourts(courts);
       await this.sendMessage(availableCourts);
-      // await this.sendMail(availableCourts);
+      await this.sendMail(availableCourts);
       logger.log("종료");
     } catch (error) {
       logger.error("에러 발생");
