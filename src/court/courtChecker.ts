@@ -146,6 +146,7 @@ export default class CourtChecker {
   }
 
   private async sendMessage(courts: CourtInfo[]) {
+    if (courts.length === 0) return;
     let msg = `${MAIL_TITLE} (${courts.length}곳)\n\n`;
 
     courts.forEach((court) => {
