@@ -13,7 +13,8 @@ export const {
   RECEIVER_EMAIL = "",
   MAIL_TITLE = "",
   COURT_TYPE = "",
-  OPEN_API_SERVICE_KEY = ""
+  OPEN_API_SERVICE_KEY = "",
+  API_SERVER_URL = ""
 } = process.env;
 
 export const COURT_FLAGS = process.env.COURT_FLAGS?.split(",").map((i) => i.trim()) || [];
@@ -31,7 +32,8 @@ const checkEnv = () => {
     RECEIVER_EMAIL,
     MAIL_TITLE,
     COURT_TYPE,
-    OPEN_API_SERVICE_KEY
+    OPEN_API_SERVICE_KEY,
+    API_SERVER_URL
   };
 
   Object.keys(object).forEach((key: string) => {

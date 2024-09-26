@@ -1,12 +1,14 @@
 import Axios from "axios";
-import HTMLParser, { AvailableDate, CourtInfo } from "./htmlParser.js";
-import Mailer from "./mailer.js";
-import Logger from "./logger.js";
-import { API_URL, COURT_FLAGS, COURT_TYPE, INTERVAL_TIME, MAIL_TITLE } from "./config.js";
-import HolidayService, { Holiday } from "./holiday.js";
+import HTMLParser, { AvailableDate, CourtInfo } from "../htmlParser.js";
+import Mailer from "../mailer.js";
+import Logger from "../logger.js";
+import { API_URL, COURT_FLAGS, COURT_TYPE, INTERVAL_TIME, MAIL_TITLE } from "../config.js";
+import HolidayService, { Holiday } from "../holiday.js";
+import MessageService from "../message.js";
 
 const logger = Logger.getInstance();
 const holidayService = new HolidayService();
+const messageService = new MessageService();
 let today: Date;
 
 export default class CourtChecker {
@@ -143,13 +145,37 @@ export default class CourtChecker {
     }
   }
 
+  private async sendMessage(courts: CourtInfo[]) {
+    let msg = `${MAIL_TITLE} (${courts.length}곳)\n\n`;
+
+    courts.forEach((court) => {
+      msg += `${court.title}\n`;
+      court.availableDates.forEach((availableDate) => {
+        msg += `${availableDate.month}월 ${availableDate.date}일\n`;
+        availableDate.availableTimes.forEach((availableTime) => {
+          msg += `${availableTime.time}\n`;
+        });
+        msg += "\n";
+      });
+    });
+
+    const message = {
+      room: "메인폰",
+      msg: msg.trim(),
+      sender: "courtChecker"
+    };
+
+    await messageService.sendMessageQueue(message);
+  }
+
   private async init() {
     try {
       logger.log("시작");
       await this.checkDateChanged();
       const courts = await this.getCourts();
       const availableCourts = this.getAvailableCourts(courts);
-      await this.sendMail(availableCourts);
+      await this.sendMessage(availableCourts);
+      // await this.sendMail(availableCourts);
       logger.log("종료");
     } catch (error) {
       logger.error("에러 발생");
