@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import html from "html-template-tag";
 import { RESERVATION_URL } from "./config.js";
+import { Holiday } from "./holiday.js";
 
 export interface CourtInfo {
   title: string;
@@ -36,7 +37,12 @@ class HTMLParser {
     return days.includes(dayOfWeek);
   }
 
-  public parseHTML(htmlString: string, month: number, courtNumber: string): CourtInfo {
+  public parseHTML(
+    htmlString: string,
+    month: number,
+    courtNumber: string,
+    holidays: Holiday[]
+  ): CourtInfo {
     const $ = cheerio.load(htmlString);
     const select = $("#flag");
     const option = $("option:selected", select);
@@ -52,15 +58,20 @@ class HTMLParser {
     $("td", calendar).each((i, tdElement) => {
       const td = $(tdElement);
       const date = Number($("span.day", td).text().trim());
-      if (!this.checkDateIsWeekend(date, month)) return;
-      const ul = $("ul", td);
-      const availableTimes: AvailableTime[] = [];
-      $("li.blu", ul).each((j, liElement) => {
-        const li = $(liElement);
-        const time = li.text().trim().replace(this.regex, "").replace(" [신청]", "");
-        availableTimes.push({ time, date, month });
-      });
-      if (availableTimes.length > 0) courtInfo.availableDates.push({ date, month, availableTimes });
+      if (
+        this.checkDateIsWeekend(date, month) ||
+        holidays.some((holiday) => holiday.day === date && holiday.month === month)
+      ) {
+        const ul = $("ul", td);
+        const availableTimes: AvailableTime[] = [];
+        $("li.blu", ul).each((j, liElement) => {
+          const li = $(liElement);
+          const time = li.text().trim().replace(this.regex, "").replace(" [신청]", "");
+          availableTimes.push({ time, date, month });
+        });
+        if (availableTimes.length > 0)
+          courtInfo.availableDates.push({ date, month, availableTimes });
+      }
     });
 
     return courtInfo;

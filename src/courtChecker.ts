@@ -3,9 +3,11 @@ import HTMLParser, { AvailableDate, CourtInfo } from "./htmlParser.js";
 import Mailer from "./mailer.js";
 import Logger from "./logger.js";
 import { API_URL, COURT_FLAGS, COURT_TYPE, INTERVAL_TIME, MAIL_TITLE } from "./config.js";
+import HolidayService, { Holiday } from "./holiday.js";
 
 const logger = Logger.getInstance();
-let today = new Date();
+const holidayService = new HolidayService();
+let today: Date;
 
 export default class CourtChecker {
   private axios;
@@ -13,6 +15,8 @@ export default class CourtChecker {
   private intervalTime = 1000 * 60 * Number(INTERVAL_TIME);
 
   private courtNumbers = COURT_FLAGS;
+
+  private holidays: Holiday[] = [];
 
   private targetMonths: number[] = [];
 
@@ -47,7 +51,7 @@ export default class CourtChecker {
       }
     });
 
-    return this.htmlParser.parseHTML(response.data, month, courtNumber);
+    return this.htmlParser.parseHTML(response.data, month, courtNumber, this.holidays);
   }
 
   private checkIsMailSended(title: string, month: number, date: number, time: string) {
@@ -114,31 +118,48 @@ export default class CourtChecker {
     await this.mailer.sendMail(html, `${MAIL_TITLE} 예약 가능 코트 ${courts.length} 곳`);
   }
 
-  private async checkAllCourts() {
+  private async getHolidays() {
+    logger.log("공휴일 정보 가져오는 중");
+    const holidayPromiseArr = this.targetMonths.map((month) => holidayService.fetchHoliday(month));
+    this.holidays = (await Promise.all(holidayPromiseArr)).flat();
+    logger.log(this.holidays.length, "개의 공휴일 정보 가져옴");
+  }
+
+  private async getCourts() {
+    logger.log("사이트 크롤링 시작");
+    const promiseArr = this.targetMonths
+      .map((month) => this.courtNumbers.map((courtNumber) => this.fetchHTML(courtNumber, month)))
+      .flat();
+    const courts = await Promise.all(promiseArr);
+    logger.log("사이트 크롤링 완료");
+    return courts;
+  }
+
+  private async checkDateChanged() {
+    if (!today || today.getDate() !== new Date().getDate()) {
+      today = new Date();
+      this.DateSet.clear();
+      await this.getHolidays();
+    }
+  }
+
+  private async init() {
     try {
       logger.log("시작");
-
-      if (today.getDate() !== new Date().getDate()) {
-        this.DateSet.clear();
-        today = new Date();
-      }
-
-      const promiseArr = this.targetMonths
-        .map((month) => this.courtNumbers.map((courtNumber) => this.fetchHTML(courtNumber, month)))
-        .flat();
-
-      const courtInfos = await Promise.all(promiseArr);
-      const availableCourts = this.getAvailableCourts(courtInfos);
+      await this.checkDateChanged();
+      const courts = await this.getCourts();
+      const availableCourts = this.getAvailableCourts(courts);
       await this.sendMail(availableCourts);
       logger.log("종료");
     } catch (error) {
       logger.error("에러 발생");
+      if (error instanceof Error) logger.error(error.message);
     }
   }
 
   public startChecking() {
     logger.log("start checking", INTERVAL_TIME || 0, "분 간격으로 실행");
-    setInterval(() => this.checkAllCourts(), this.intervalTime);
-    this.checkAllCourts();
+    setInterval(() => this.init(), this.intervalTime);
+    this.init();
   }
 }
