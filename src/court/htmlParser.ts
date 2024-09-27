@@ -2,27 +2,9 @@ import * as cheerio from "cheerio";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import html from "html-template-tag";
-import { RESERVATION_URL } from "./config.js";
-import { Holiday } from "./holiday.js";
-
-export interface CourtInfo {
-  title: string;
-  availableDates: AvailableDate[];
-  month: number;
-  flag: string;
-}
-
-export interface AvailableDate {
-  month: number;
-  date: number;
-  availableTimes: AvailableTime[];
-}
-
-export interface AvailableTime {
-  month: number;
-  date: number;
-  time: string;
-}
+import { RESERVATION_URL } from "../app/config.js";
+import { Holiday } from "../holiday/holiday.service.js";
+import { AvailableTime, CourtInfo } from "./dto/court.dto.js";
 
 class HTMLParser {
   private regex = /\n|\t/g;

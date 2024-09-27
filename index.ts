@@ -1,4 +1,4 @@
-import CourtChecker from "./src/court/courtChecker.js";
+import CourtChecker from "./src/court/court.bot.js";
 
 process.title = process.env.PROCESS_NAME || "tennisCourt";
 

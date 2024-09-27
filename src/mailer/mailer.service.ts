@@ -1,19 +1,19 @@
 import { configDotenv } from "dotenv";
 import nodemailer from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
-import Logger from "./logger.js";
+import Logger from "../app/logger.js";
 import {
   EMAIL_PASSWORD,
   EMAIL_SERVICE,
   EMAIL_USERNAME,
   MAIL_TITLE,
   RECEIVER_EMAIL
-} from "./config.js";
+} from "../app/config.js";
 
 configDotenv();
 const logger = Logger.getInstance();
 
-export default class Mailer {
+export default class MailerService {
   private transporter;
 
   private mailOptions;

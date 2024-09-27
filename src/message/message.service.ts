@@ -1,5 +1,5 @@
 import Axios, { AxiosInstance } from "axios";
-import { API_SERVER_URL } from "./config.js";
+import { API_SERVER_URL } from "../app/config";
 
 export interface Message {
   room: string;
