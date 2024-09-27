@@ -1,3 +1,5 @@
+import { format } from "date-fns";
+import { ko } from "date-fns/locale";
 import HTMLParser from "./htmlParser.js";
 import Logger from "../app/logger.js";
 import { COURT_FLAGS, INTERVAL_TIME, MAIL_TITLE } from "../app/config.js";
@@ -60,7 +62,11 @@ export default class CourtChecker {
     courts.forEach((court) => {
       msg += `${court.title}\n`;
       court.availableDates.forEach((availableDate) => {
-        msg += `${availableDate.month}월 ${availableDate.date}일\n`;
+        const targetDate = new Date();
+        targetDate.setMonth(availableDate.month - 1);
+        targetDate.setDate(availableDate.date);
+
+        msg += `${format(targetDate, "MMM do (E)", { locale: ko })}\n`;
         availableDate.availableTimes.forEach((availableTime) => {
           msg += `${availableTime.time}\n`;
         });
