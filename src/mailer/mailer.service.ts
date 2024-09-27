@@ -3,12 +3,12 @@ import nodemailer from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import Logger from "../app/logger.js";
 import {
-  EMAIL_PASSWORD,
-  EMAIL_SERVICE,
-  EMAIL_USERNAME,
-  MAIL_TITLE,
-  RECEIVER_EMAIL
-} from "../app/config.js";
+  MAILER_PASSWORD,
+  MAILER_RECEIVER_EMAIL,
+  MAILER_SERVICE,
+  MAILER_TITLE,
+  MAILER_USERNAME
+} from "./mailer.config.js";
 
 configDotenv();
 const logger = Logger.getInstance();
@@ -20,17 +20,17 @@ export default class MailerService {
 
   constructor() {
     const configOptions: SMTPTransport.Options = {
-      service: EMAIL_SERVICE,
+      service: MAILER_SERVICE,
       auth: {
-        user: EMAIL_USERNAME,
-        pass: EMAIL_PASSWORD
+        user: MAILER_USERNAME,
+        pass: MAILER_PASSWORD
       }
     };
 
     this.mailOptions = {
-      from: `Tennis Court Checker <${EMAIL_USERNAME}>`,
-      to: RECEIVER_EMAIL,
-      subject: MAIL_TITLE
+      from: `Tennis Court Checker <${MAILER_USERNAME}>`,
+      to: MAILER_RECEIVER_EMAIL,
+      subject: MAILER_TITLE
     };
 
     this.transporter = nodemailer.createTransport(configOptions);

@@ -1,6 +1,6 @@
 import Axios from "axios";
-import { OPEN_API_SERVICE_KEY } from "../app/config.js";
 import { Calendar } from "../court/dto/calender.dto.js";
+import { HOLIDAY_API_SERVICE_KEY, HOLIDAY_API_URL } from "./holiday.config.js";
 
 export interface Holiday {
   month: number;
@@ -34,9 +34,8 @@ export default class HolidayService {
   private responseMap: Map<string, Holiday[]> = new Map();
 
   constructor() {
-    const URL = "http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService";
     this.axios = Axios.create({
-      baseURL: URL,
+      baseURL: HOLIDAY_API_URL,
       headers: {
         "Content-Type": "application/json"
       }
@@ -64,7 +63,7 @@ export default class HolidayService {
         solYear: calendar.year,
         solMonth: calendar.month,
         _type: "json",
-        ServiceKey: OPEN_API_SERVICE_KEY
+        ServiceKey: HOLIDAY_API_SERVICE_KEY
       }
     });
 

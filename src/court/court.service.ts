@@ -1,9 +1,9 @@
 import Axios, { AxiosInstance } from "axios";
-import { API_URL, COURT_TYPE } from "../app/config.js";
 import HTMLParser from "./htmlParser.js";
 import { Holiday } from "../holiday/holiday.service.js";
 import { AvailableDate, CourtInfo } from "./dto/court.dto.js";
 import { Calendar } from "./dto/calender.dto.js";
+import { COURT_TYPE, COURT_VIEW_URL } from "./court.config.js";
 
 export default class CourtService {
   private axios: AxiosInstance;
@@ -16,7 +16,7 @@ export default class CourtService {
 
   constructor() {
     this.axios = Axios.create({
-      baseURL: API_URL,
+      baseURL: COURT_VIEW_URL,
       headers: {
         "Content-Type": "application/json"
       }

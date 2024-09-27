@@ -1,5 +1,5 @@
 import Axios, { AxiosInstance } from "axios";
-import { API_SERVER_URL } from "../app/config.js";
+import { MESSENGER_API_URL } from "./message.config.js";
 
 export interface Message {
   room: string;
@@ -12,7 +12,7 @@ export default class MessageService {
 
   constructor() {
     this.axios = Axios.create({
-      baseURL: `${API_SERVER_URL}/message`
+      baseURL: `${MESSENGER_API_URL}/message`
     });
   }
 

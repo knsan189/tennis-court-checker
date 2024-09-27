@@ -2,9 +2,10 @@ import * as cheerio from "cheerio";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import html from "html-template-tag";
-import { RESERVATION_URL } from "../app/config.js";
+
 import { Holiday } from "../holiday/holiday.service.js";
 import { AvailableTime, CourtInfo } from "./dto/court.dto.js";
+import { COURT_RESERVATION_URL } from "./court.config.js";
 
 class HTMLParser {
   private regex = /\n|\t/g;
@@ -60,7 +61,7 @@ class HTMLParser {
   }
 
   private createLink(court: CourtInfo): string {
-    const link = new URL(RESERVATION_URL || "");
+    const link = new URL(COURT_RESERVATION_URL);
     link.searchParams.append("flag", court.flag);
     link.searchParams.append("month", court.month.toString());
     link.searchParams.append("year", this.today.getFullYear().toString());
