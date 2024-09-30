@@ -77,7 +77,7 @@ export default class CourtChecker {
     });
 
     const message = {
-      room: "메인폰",
+      room: "alarm",
       msg: msg.trim(),
       sender: "courtChecker"
     };
