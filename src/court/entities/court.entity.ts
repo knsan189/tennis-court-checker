@@ -1,8 +1,10 @@
-export interface CourtInfo {
+export interface CourtEntity {
   title: string;
   availableDates: AvailableDate[];
   month: number;
-  flag: string;
+  year: number;
+  courtType: string;
+  courtNumber: string;
 }
 
 export interface AvailableDate {

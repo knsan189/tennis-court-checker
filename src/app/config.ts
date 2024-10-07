@@ -3,6 +3,6 @@ import validate from "./validator.js";
 
 configDotenv();
 
-export const { INTERVAL_TIME, LISTEN_PORT, PROCESS_NAME } = process.env;
+export const { INTERVAL_TIME, LISTEN_PORT } = process.env;
 
-validate({ INTERVAL_TIME, LISTEN_PORT, PROCESS_NAME });
+validate({ INTERVAL_TIME, LISTEN_PORT });

@@ -1,65 +1,54 @@
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import HTMLParser from "./htmlParser.js";
+import HTMLParser from "./utils/htmlParser.js";
 import Logger from "../app/logger.js";
-import HolidayService, { Holiday } from "../holiday/holiday.service.js";
 import MailerService from "../mailer/mailer.service.js";
 import MessageService from "../message/message.service.js";
-import { CourtInfo } from "./dto/court.dto.js";
-import { Calendar } from "./dto/calender.dto.js";
+import { CourtEntity } from "./entities/court.entity.js";
+import { CalendarEntity } from "./entities/calender.entity.js";
 import CourtService from "./court.service.js";
-import { COURT_FLAGS } from "./court.config.js";
-import { MAILER_TITLE } from "../mailer/mailer.config.js";
-import { INTERVAL_TIME } from "../app/config.js";
 
-export default class CourtChecker {
-  private intervalTime = 1000 * 60 * Number(INTERVAL_TIME);
+interface CourtBotOptions {
+  courtType: string;
+  courtNumbers: string[];
+  courtName: string;
+}
+export default class CourtBot {
+  private courtName: string;
 
-  private courtNumbers = COURT_FLAGS;
+  private courtType: string;
 
-  private holidays: Holiday[] = [];
+  private courtNumbers: string[];
 
-  private targetCalendars: Calendar[] = [];
+  private htmlParser = HTMLParser.getInstance();
 
-  private htmlParser = new HTMLParser();
-
-  private mailerService = new MailerService();
+  private mailerService = MailerService.getInstance();
 
   private logger = Logger.getInstance();
 
-  private holidayService = new HolidayService();
+  private messageService = MessageService.getInstance();
 
-  private messageService = new MessageService();
+  private courtService = CourtService.getInstance();
 
-  private courtService = new CourtService();
+  constructor(options: CourtBotOptions) {
+    this.logger.setHeader(`[${options.courtName}]`);
+    this.courtNumbers = options.courtNumbers;
+    this.courtType = options.courtType;
+    this.courtName = options.courtName;
+  }
 
-  private today?: Date;
-
-  private async sendMail(courts: CourtInfo[]) {
+  private async sendMail(courts: CourtEntity[]) {
     if (courts.length === 0) return;
     this.logger.log("메일 전송 중");
     const html = this.htmlParser.generateHTML(courts);
-    await this.mailerService.sendMail(html, `${MAILER_TITLE} 예약 가능 코트 ${courts.length} 곳`);
+    await this.mailerService.sendMail(html, `${this.courtName} 예약 가능 코트 ${courts.length} 곳`);
     this.logger.log("메일 전송 완료");
   }
 
-  private async getHolidays() {
-    this.logger.log("공휴일 정보 가져오는 중");
-    const holidayPromiseArr = this.targetCalendars.map((calendar) =>
-      this.holidayService.fetchHoliday(calendar)
-    );
-    this.holidays = (await Promise.all(holidayPromiseArr)).flat();
-    this.logger.log(this.holidays.length, "개의 공휴일 정보 가져옴");
-  }
-
-  private checkDateChanged() {
-    return !this.today || this.today.getDate() !== new Date().getDate();
-  }
-
-  private async sendMessage(courts: CourtInfo[]) {
+  private async sendMessage(courts: CourtEntity[]) {
     if (courts.length === 0) return;
     this.logger.log("메시지 전송 중");
-    let msg = `${MAILER_TITLE} (${courts.length}곳)\n\n`;
+    let msg = `${this.courtName} (${courts.length}곳)\n\n`;
 
     courts.forEach((court) => {
       msg += `${court.title}\n`;
@@ -86,53 +75,22 @@ export default class CourtChecker {
     this.logger.log("메시지 전송 완료");
   }
 
-  private setTargetCalendar() {
-    const date = new Date();
-    const thisMonth = date.getMonth() + 1;
-    const thisYear = date.getFullYear();
-
-    this.targetCalendars = [
-      { month: thisMonth, year: thisYear },
-      {
-        month: thisMonth > 11 ? 1 : thisMonth + 1,
-        year: thisMonth > 11 ? thisYear + 1 : thisYear
-      }
-    ];
-    this.logger.log(
-      "대상 달 설정 완료",
-      this.targetCalendars.map((calendar) => calendar.month).join(", ")
-    );
-  }
-
-  private async init() {
+  public async init(calendars: CalendarEntity[]) {
     try {
-      this.logger.log("시작");
-      this.setTargetCalendar();
-      if (this.checkDateChanged()) {
-        this.today = new Date();
-        this.courtService.clearDateSet();
-        await this.getHolidays();
-      }
+      // this.logger.log("시작");
       this.logger.log("예약 가능한 코트 찾는 중");
       const courts = await this.courtService.fetchAvailableCourts(
+        this.courtType,
         this.courtNumbers,
-        this.targetCalendars,
-        this.holidays
+        calendars
       );
       this.logger.log("예약 가능한 코트 수", courts.length);
-
       await this.sendMessage(courts);
       await this.sendMail(courts);
-      this.logger.log("종료");
+      // this.logger.log("종료");
     } catch (error) {
       this.logger.error("에러 발생");
       if (error instanceof Error) this.logger.error(error.message);
     }
-  }
-
-  public startChecking() {
-    this.logger.log(MAILER_TITLE, INTERVAL_TIME, "분 간격으로 실행");
-    setInterval(() => this.init(), this.intervalTime);
-    this.init();
   }
 }

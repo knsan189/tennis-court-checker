@@ -11,7 +11,7 @@
     "browser": true,
     "node": true
   },
-  "ignorePatterns": ["node_modules/", "*.js"],
+  "ignorePatterns": ["node_modules/", "*.js", "*.cjs"],
   "rules": {
     "class-methods-use-this": "off"
   },

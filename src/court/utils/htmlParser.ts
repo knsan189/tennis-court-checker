@@ -2,15 +2,19 @@ import * as cheerio from "cheerio";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import html from "html-template-tag";
-
-import { Holiday } from "../holiday/holiday.service.js";
-import { AvailableTime, CourtInfo } from "./dto/court.dto.js";
-import { COURT_RESERVATION_URL } from "./court.config.js";
+import HolidayService, { Holiday } from "../../holiday/holiday.service.js";
+import { AvailableTime, CourtEntity } from "../entities/court.entity.js";
+import { COURT_RESERVATION_URL } from "../court.config.js";
+import { CalendarEntity } from "../entities/calender.entity.js";
 
 class HTMLParser {
   private regex = /\n|\t/g;
 
   private today = new Date();
+
+  private holidays: Holiday[] = [];
+
+  private holidayService = HolidayService.getInstance();
 
   private checkDateIsWeekend(date: number, month: number): boolean {
     this.today.setDate(date);
@@ -20,58 +24,64 @@ class HTMLParser {
     return days.includes(dayOfWeek);
   }
 
-  public parseHTML(
+  public static getInstance() {
+    return new HTMLParser();
+  }
+
+  public async parseHTML(
     htmlString: string,
-    month: number,
-    courtNumber: string,
-    holidays: Holiday[]
-  ): CourtInfo {
+    calendar: CalendarEntity,
+    courtType: string,
+    courtNumber: string
+  ): Promise<CourtEntity> {
+    this.holidays = await this.holidayService.fetchHoliday(calendar);
     const $ = cheerio.load(htmlString);
     const select = $("#flag");
     const option = $("option:selected", select);
-
-    const courtInfo: CourtInfo = {
+    const courtInfo: CourtEntity = {
       title: option.text().trim(),
-      month,
+      year: calendar.year,
+      month: calendar.month,
       availableDates: [],
-      flag: courtNumber
+      courtNumber,
+      courtType
     };
 
-    const calendar = $(".calendar");
-    $("td", calendar).each((i, tdElement) => {
+    const calendarElement = $(".calendar");
+    $("td", calendarElement).each((i, tdElement) => {
       const td = $(tdElement);
       const date = Number($("span.day", td).text().trim());
       if (
-        this.checkDateIsWeekend(date, month) ||
-        holidays.some((holiday) => holiday.day === date && holiday.month === month)
+        this.checkDateIsWeekend(date, calendar.month) ||
+        this.holidays.some((holiday) => holiday.day === date && holiday.month === calendar.month)
       ) {
         const ul = $("ul", td);
         const availableTimes: AvailableTime[] = [];
         $("li.blu", ul).each((j, liElement) => {
           const li = $(liElement);
           const time = li.text().trim().replace(this.regex, "").replace(" [신청]", "");
-          availableTimes.push({ time, date, month });
+          availableTimes.push({ time, date, month: calendar.month });
         });
         if (availableTimes.length > 0)
-          courtInfo.availableDates.push({ date, month, availableTimes });
+          courtInfo.availableDates.push({ date, month: calendar.month, availableTimes });
       }
     });
 
     return courtInfo;
   }
 
-  private createLink(court: CourtInfo): string {
+  private createLink(court: CourtEntity): string {
     const link = new URL(COURT_RESERVATION_URL);
-    link.searchParams.append("flag", court.flag);
+    link.searchParams.append("flag", court.courtNumber);
     link.searchParams.append("month", court.month.toString());
     link.searchParams.append("year", this.today.getFullYear().toString());
-    link.searchParams.append("types", "8");
+    link.searchParams.append("types", court.courtType);
     link.searchParams.append("menuLevel", "2");
     link.searchParams.append("menuNo", "351");
     return link.toString();
   }
 
-  public generateHTML(courtInfos: CourtInfo[]): string {
+  public generateHTML(courtInfos: CourtEntity[]): string {
     const template = html`
       <!doctype html>
       <html lang="ko">

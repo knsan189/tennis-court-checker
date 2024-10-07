@@ -1,9 +1,8 @@
 import Axios, { AxiosInstance } from "axios";
-import HTMLParser from "./htmlParser.js";
-import { Holiday } from "../holiday/holiday.service.js";
-import { AvailableDate, CourtInfo } from "./dto/court.dto.js";
-import { Calendar } from "./dto/calender.dto.js";
-import { COURT_TYPE, COURT_VIEW_URL } from "./court.config.js";
+import HTMLParser from "./utils/htmlParser.js";
+import { AvailableDate, CourtEntity } from "./entities/court.entity.js";
+import { CalendarEntity } from "./entities/calender.entity.js";
+import { COURT_VIEW_URL } from "./court.config.js";
 
 export default class CourtService {
   private axios: AxiosInstance;
@@ -12,7 +11,9 @@ export default class CourtService {
 
   private DateSet = new Set<string>();
 
-  private courts: CourtInfo[] = [];
+  private courts: CourtEntity[] = [];
+
+  private today = new Date();
 
   constructor() {
     this.axios = Axios.create({
@@ -23,15 +24,19 @@ export default class CourtService {
     });
   }
 
+  public static getInstance() {
+    return new CourtService();
+  }
+
   private checkDuplicate(title: string, month: number, date: number, time: string) {
     const key = `${title}-${month}-${date}-${time}`;
     return this.DateSet.has(key);
   }
 
-  private async fetchHTML(courtNumber: string, calendar: Calendar) {
+  private async fetchHTML(courtType: string, courtNumber: string, calendar: CalendarEntity) {
     const response = await this.axios({
       params: {
-        types: COURT_TYPE,
+        types: courtType,
         flag: courtNumber,
         menuLevel: 2,
         menuNo: 351,
@@ -42,42 +47,55 @@ export default class CourtService {
     return response.data;
   }
 
-  public async fetchCourt(courtNumber: string, calendar: Calendar, holidays: Holiday[]) {
-    const html = await this.fetchHTML(courtNumber, calendar);
-    return this.htmlParser.parseHTML(html, calendar.month, courtNumber, holidays);
+  public async fetchCourt(courtType: string, courtNumber: string, calendar: CalendarEntity) {
+    const html = await this.fetchHTML(courtType, courtNumber, calendar);
+    const court = await this.htmlParser.parseHTML(html, calendar, courtType, courtNumber);
+    return court;
   }
 
-  public async fetchAllCourts(courtNumbers: string[], calendars: Calendar[], holidays: Holiday[]) {
+  public async fetchAllCourts(
+    courtType: string,
+    courtNumbers: string[],
+    calendars: CalendarEntity[]
+  ) {
     const promiseArray = calendars
       .map((calendar) =>
-        courtNumbers.map((courtNumber) => this.fetchCourt(courtNumber, calendar, holidays))
+        courtNumbers.map((courtNumber) => this.fetchCourt(courtType, courtNumber, calendar))
       )
       .flat();
+
     this.courts = await Promise.all(promiseArray);
     return this.courts;
   }
 
   public async fetchAvailableCourts(
+    courtType: string,
     courtNumbers: string[],
-    calendars: Calendar[],
-    holidays: Holiday[]
+    calendars: CalendarEntity[]
   ) {
-    const courtInfos = await this.fetchAllCourts(courtNumbers, calendars, holidays);
+    const courtInfos = await this.fetchAllCourts(courtType, courtNumbers, calendars);
     return this.filterDuplicateCourts(courtInfos);
   }
 
-  public async filterDuplicateCourts(courts: CourtInfo[]) {
-    const availableCourts: CourtInfo[] = [];
+  public async filterDuplicateCourts(courts: CourtEntity[]) {
+    const availableCourts: CourtEntity[] = [];
+
+    if (this.today.getDate() !== new Date().getDate()) {
+      this.DateSet.clear();
+      this.today = new Date();
+    }
 
     courts.forEach((courtInfo) => {
       if (courtInfo.availableDates.length === 0) {
         return;
       }
 
-      const newAvailableCourt: CourtInfo = {
+      const newAvailableCourt: CourtEntity = {
         title: courtInfo.title,
         month: courtInfo.month,
-        flag: courtInfo.flag,
+        year: courtInfo.year,
+        courtType: courtInfo.courtType,
+        courtNumber: courtInfo.courtNumber,
         availableDates: []
       };
 
@@ -112,9 +130,5 @@ export default class CourtService {
     });
 
     return availableCourts;
-  }
-
-  clearDateSet() {
-    this.DateSet.clear();
   }
 }

@@ -1,6 +1,7 @@
 import Axios from "axios";
-import { Calendar } from "../court/dto/calender.dto.js";
+import { CalendarEntity } from "../court/entities/calender.entity.js";
 import { HOLIDAY_API_SERVICE_KEY, HOLIDAY_API_URL } from "./holiday.config.js";
+import Logger from "../app/logger.js";
 
 export interface Holiday {
   month: number;
@@ -33,6 +34,8 @@ export default class HolidayService {
 
   private responseMap: Map<string, Holiday[]> = new Map();
 
+  private logger = Logger.getInstance();
+
   constructor() {
     this.axios = Axios.create({
       baseURL: HOLIDAY_API_URL,
@@ -42,6 +45,10 @@ export default class HolidayService {
     });
   }
 
+  public static getInstance() {
+    return new HolidayService();
+  }
+
   private separateMonthDay(locdate: number) {
     const date = locdate.toString();
     const month = parseInt(date.substring(4, 6), 10);
@@ -49,33 +56,41 @@ export default class HolidayService {
     return { month, day };
   }
 
-  public async fetchHoliday(calendar: Calendar) {
-    const key = `${calendar.year}-${calendar.month}`;
-    const cache = this.responseMap.get(key);
+  public async fetchHoliday(calendar: CalendarEntity): Promise<Holiday[]> {
+    try {
+      const key = `${calendar.year}-${calendar.month}`;
+      const cache = this.responseMap.get(key);
 
-    if (cache) {
-      return cache;
-    }
-
-    const response = await this.axios<FetchHolidayResponse>({
-      url: "/getRestDeInfo",
-      params: {
-        solYear: calendar.year,
-        solMonth: calendar.month,
-        _type: "json",
-        ServiceKey: HOLIDAY_API_SERVICE_KEY
+      if (cache) {
+        return cache;
       }
-    });
 
-    const holidays =
-      response.data.response.body.items.item?.map((item) => this.separateMonthDay(item.locdate)) ||
-      [];
+      const response = await this.axios<FetchHolidayResponse>({
+        url: "/getRestDeInfo",
+        params: {
+          solYear: calendar.year,
+          solMonth: calendar.month,
+          _type: "json",
+          ServiceKey: HOLIDAY_API_SERVICE_KEY
+        }
+      });
 
-    if (this.responseMap.size > 12) {
-      this.responseMap.clear();
+      const holidays =
+        response.data.response.body.items.item?.map((item) =>
+          this.separateMonthDay(item.locdate)
+        ) || [];
+
+      if (this.responseMap.size > 12) {
+        this.responseMap.clear();
+      }
+
+      this.responseMap.set(key, holidays);
+      return holidays;
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error(error.message);
+      }
+      return [];
     }
-
-    this.responseMap.set(key, holidays);
-    return holidays;
   }
 }
