@@ -66,7 +66,7 @@ export default class CourtBot {
     });
 
     const message = {
-      room: "alarm",
+      room: "메인폰",
       msg: msg.trim(),
       sender: "courtChecker"
     };
