@@ -8,6 +8,12 @@ export interface Holiday {
   day: number;
 }
 
+interface HolidayItem {
+  dateKind: string;
+  dateName: string;
+  locdate: number;
+}
+
 interface FetchHolidayResponse {
   response: {
     header: {
@@ -16,11 +22,7 @@ interface FetchHolidayResponse {
     };
     body: {
       items: {
-        item?: {
-          dateKind: string;
-          dateName: string;
-          locdate: number;
-        }[];
+        item?: HolidayItem[] | HolidayItem;
       };
       numOfRows: number;
       pageNo: number;
@@ -75,10 +77,19 @@ export default class HolidayService {
         }
       });
 
-      const holidays =
-        response.data.response.body.items.item?.map((item) =>
-          this.separateMonthDay(item.locdate)
-        ) || [];
+      const holidayItems = response.data.response.body.items.item;
+
+      if (!holidayItems) {
+        return [];
+      }
+
+      let holidays: Holiday[] = [];
+
+      if (Array.isArray(holidayItems)) {
+        holidays = holidayItems.map((item) => this.separateMonthDay(item.locdate));
+      } else {
+        holidays = [this.separateMonthDay(holidayItems.locdate)];
+      }
 
       if (this.responseMap.size > 12) {
         this.responseMap.clear();
