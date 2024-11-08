@@ -1,5 +1,5 @@
 import Axios, { AxiosInstance } from "axios";
-import { MESSENGER_API_URL } from "./message.config.js";
+import { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID } from "./message.config.js";
 import Logger from "../app/logger.js";
 
 export interface Message {
@@ -15,22 +15,18 @@ export default class MessageService {
 
   constructor() {
     this.axios = Axios.create({
-      baseURL: `${MESSENGER_API_URL}/message`
+      baseURL: `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`
     });
-  }
-
-  async sendMessageQueue(message: Message) {
-    try {
-      this.axios.post("/queue", message);
-    } catch (error) {
-      this.logger.error("메시지 전송 실패");
-      if (error instanceof Error) {
-        this.logger.error(error.message);
-      }
-    }
   }
 
   public static getInstance() {
     return new MessageService();
+  }
+
+  sendMessage(message: Message) {
+    return this.axios.post("/sendMessage", {
+      chat_id: TELEGRAM_CHAT_ID,
+      text: message.msg
+    });
   }
 }

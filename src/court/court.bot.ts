@@ -37,16 +37,17 @@ export default class CourtBot {
     this.courtName = options.courtName;
   }
 
-  private async sendMail(courts: CourtEntity[]) {
-    if (courts.length === 0) return;
-    this.logger.log("메일 전송 중");
-    const html = this.htmlParser.generateHTML(courts);
-    await this.mailerService.sendMail(html, `${this.courtName} 예약 가능 코트 ${courts.length} 곳`);
-    this.logger.log("메일 전송 완료");
-  }
+  // private async sendMail(courts: CourtEntity[]) {
+  //   if (courts.length === 0) return;
+  //   this.logger.log("메일 전송 중");
+  //   const html = this.htmlParser.generateHTML(courts);
+  //   await this.mailerService.sendMail(html, `${this.courtName} 예약 가능 코트 ${courts.length} 곳`);
+  //   this.logger.log("메일 전송 완료");
+  // }
 
   private async sendMessage(courts: CourtEntity[]) {
     if (courts.length === 0) return;
+
     this.logger.log("메시지 전송 중");
     let msg = `${this.courtName} (${courts.length}곳)\n\n`;
 
@@ -56,7 +57,6 @@ export default class CourtBot {
         const targetDate = new Date();
         targetDate.setMonth(availableDate.month - 1);
         targetDate.setDate(availableDate.date);
-
         msg += `${format(targetDate, "MMM do (E)", { locale: ko })}\n`;
         availableDate.availableTimes.forEach((availableTime) => {
           msg += `${availableTime.time}\n`;
@@ -71,13 +71,12 @@ export default class CourtBot {
       sender: "courtChecker"
     };
 
-    await this.messageService.sendMessageQueue(message);
+    await this.messageService.sendMessage(message);
     this.logger.log("메시지 전송 완료");
   }
 
   public async init(calendars: CalendarEntity[]) {
     try {
-      // this.logger.log("시작");
       this.logger.log("예약 가능한 코트 찾는 중");
       const courts = await this.courtService.fetchAvailableCourts(
         this.courtType,
@@ -85,12 +84,12 @@ export default class CourtBot {
         calendars
       );
       this.logger.log("예약 가능한 코트 수", courts.length);
-      await this.sendMessage(courts);
-      await this.sendMail(courts);
-      // this.logger.log("종료");
+      this.sendMessage(courts);
     } catch (error) {
       this.logger.error("에러 발생");
-      if (error instanceof Error) this.logger.error(error.message);
+      if (error instanceof Error) {
+        this.logger.error(error.message);
+      }
     }
   }
 }
