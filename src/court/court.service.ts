@@ -17,10 +17,7 @@ export default class CourtService {
 
   constructor() {
     this.axios = Axios.create({
-      baseURL: COURT_VIEW_URL,
-      headers: {
-        "Content-Type": "application/json"
-      }
+      baseURL: COURT_VIEW_URL
     });
   }
 

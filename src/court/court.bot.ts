@@ -20,8 +20,10 @@ export default class CourtBot {
 
   private courtNumbers: string[];
 
+  /**  @deprecated use telegram message api */
   private htmlParser = HTMLParser.getInstance();
 
+  /**  @deprecated use telegram message api */
   private mailerService = MailerService.getInstance();
 
   private logger = Logger.getInstance();
@@ -37,13 +39,14 @@ export default class CourtBot {
     this.courtName = options.courtName;
   }
 
-  // private async sendMail(courts: CourtEntity[]) {
-  //   if (courts.length === 0) return;
-  //   this.logger.log("메일 전송 중");
-  //   const html = this.htmlParser.generateHTML(courts);
-  //   await this.mailerService.sendMail(html, `${this.courtName} 예약 가능 코트 ${courts.length} 곳`);
-  //   this.logger.log("메일 전송 완료");
-  // }
+  /**  @deprecated use telegram message api */
+  private async sendMail(courts: CourtEntity[]) {
+    if (courts.length === 0) return;
+    this.logger.log("메일 전송 중");
+    const html = this.htmlParser.generateHTML(courts);
+    await this.mailerService.sendMail(html, `${this.courtName} 예약 가능 코트 ${courts.length} 곳`);
+    this.logger.log("메일 전송 완료");
+  }
 
   private async sendMessage(courts: CourtEntity[]) {
     if (courts.length === 0) return;
