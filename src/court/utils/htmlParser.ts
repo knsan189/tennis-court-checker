@@ -17,8 +17,10 @@ class HTMLParser {
   private holidayService = HolidayService.getInstance();
 
   private checkDateIsWeekend(date: number, month: number): boolean {
+    this.today = new Date();
     this.today.setDate(date);
     this.today.setMonth(month - 1);
+
     const dayOfWeek = this.today.getDay();
     const days = [0, 6];
     return days.includes(dayOfWeek);
@@ -35,6 +37,7 @@ class HTMLParser {
     courtNumber: string
   ): Promise<CourtEntity> {
     this.holidays = await this.holidayService.fetchHoliday(calendar);
+
     const $ = cheerio.load(htmlString);
     const select = $("#flag");
     const option = $("option:selected", select);

@@ -86,6 +86,7 @@ export default class CourtBot {
         this.courtNumbers,
         calendars
       );
+      // console.log(courts);
       this.logger.log("예약 가능한 코트 수", courts.length);
       this.sendMessage(courts);
     } catch (error) {
