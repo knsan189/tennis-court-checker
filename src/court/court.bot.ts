@@ -51,31 +51,37 @@ export default class CourtBot {
   private async sendMessage(courts: CourtEntity[]) {
     if (courts.length === 0) return;
 
-    this.logger.log("메시지 전송 중");
-    let msg = `${this.courtName} (${courts.length}곳)\n\n`;
+    try {
+      this.logger.log("메시지 전송 중");
+      let msg = `${this.courtName} (${courts.length}곳)\n\n`;
 
-    courts.forEach((court) => {
-      msg += `${court.title}\n`;
-      court.availableDates.forEach((availableDate) => {
-        const targetDate = new Date();
-        targetDate.setMonth(availableDate.month - 1);
-        targetDate.setDate(availableDate.date);
-        msg += `${format(targetDate, "MMM do (E)", { locale: ko })}\n`;
-        availableDate.availableTimes.forEach((availableTime) => {
-          msg += `${availableTime.time}\n`;
+      courts.forEach((court) => {
+        msg += `${court.title}\n`;
+        court.availableDates.forEach((availableDate) => {
+          const targetDate = new Date();
+          targetDate.setMonth(availableDate.month - 1);
+          targetDate.setDate(availableDate.date);
+          msg += `${format(targetDate, "MMM do (E)", { locale: ko })}\n`;
+          availableDate.availableTimes.forEach((availableTime) => {
+            msg += `${availableTime.time}\n`;
+          });
+          msg += "\n";
         });
-        msg += "\n";
       });
-    });
 
-    const message = {
-      room: "메인폰",
-      msg: msg.trim(),
-      sender: "courtChecker"
-    };
+      const message = {
+        room: "메인폰",
+        msg: msg.trim(),
+        sender: "courtChecker"
+      };
 
-    await this.messageService.sendMessage(message);
-    this.logger.log("메시지 전송 완료");
+      await this.messageService.sendMessage(message);
+      this.logger.log("메시지 전송 완료");
+    } catch (error) {
+      if (error instanceof Error) {
+        this.logger.error(error.message);
+      }
+    }
   }
 
   public async init(calendars: CalendarEntity[]) {

@@ -23,8 +23,30 @@ export default class MessageService {
     return new MessageService();
   }
 
-  sendMessage(message: Message) {
-    return this.axios.post("/sendMessage", {
+  private splitMsgMaxLength(msg: string): string[] {
+    const splitMsg = [];
+    let start = 0;
+    let end = 4096;
+    while (start < msg.length) {
+      splitMsg.push(msg.substring(start, end));
+      start = end;
+      end += 4096;
+    }
+    return splitMsg;
+  }
+
+  async sendMessage(message: Message) {
+    if (message.msg.length > 4096) {
+      const splitMsg = this.splitMsgMaxLength(message.msg);
+      splitMsg.forEach((msg) => {
+        this.axios.post("/sendMessage", {
+          chat_id: TELEGRAM_CHAT_ID,
+          text: msg
+        });
+      });
+      return;
+    }
+    this.axios.post("/sendMessage", {
       chat_id: TELEGRAM_CHAT_ID,
       text: message.msg
     });
