@@ -7,11 +7,11 @@ const bot1 = new CourtBot({
   courtName: "새물공원"
 });
 
-const bot2 = new CourtBot({
-  courtType: "9",
-  courtNumbers: ["04", "05", "06", "07"],
-  courtName: "서조체육시설"
-});
+// const bot2 = new CourtBot({
+//   courtType: "9",
+//   courtNumbers: ["04", "05", "06", "07"],
+//   courtName: "서조체육시설"
+// });
 
 const startCheck = async () => {
   const date = new Date();
@@ -26,7 +26,7 @@ const startCheck = async () => {
     }
   ];
 
-  bot2.init(targetCalendars);
+  // bot2.init(targetCalendars);
   bot1.init(targetCalendars);
 };
 

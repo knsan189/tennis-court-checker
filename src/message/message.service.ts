@@ -39,16 +39,22 @@ export default class MessageService {
     if (message.msg.length > 4096) {
       const splitMsg = this.splitMsgMaxLength(message.msg);
       splitMsg.forEach((msg) => {
-        this.axios.post("/sendMessage", {
-          chat_id: TELEGRAM_CHAT_ID,
-          text: msg
-        });
+        this.axios.post(
+          "/sendMessage",
+          {
+            chat_id: TELEGRAM_CHAT_ID,
+            text: msg,
+            parse_mode: "Markdown"
+          },
+          {}
+        );
       });
       return;
     }
     this.axios.post("/sendMessage", {
       chat_id: TELEGRAM_CHAT_ID,
-      text: message.msg
+      text: message.msg,
+      parse_mode: "Markdown"
     });
   }
 }

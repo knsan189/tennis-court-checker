@@ -1,3 +1,5 @@
+import type { CalendarEntity } from "./calender.entity";
+
 export interface CourtEntity {
   title: string;
   availableDates: AvailableDate[];
@@ -7,14 +9,12 @@ export interface CourtEntity {
   courtNumber: string;
 }
 
-export interface AvailableDate {
-  month: number;
+export interface AvailableDate extends CalendarEntity {
   date: number;
   availableTimes: AvailableTime[];
 }
 
-export interface AvailableTime {
-  month: number;
+export interface AvailableTime extends CalendarEntity {
   date: number;
   time: string;
 }

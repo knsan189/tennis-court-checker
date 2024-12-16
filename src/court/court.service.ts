@@ -46,6 +46,7 @@ export default class CourtService {
 
   public async fetchCourt(courtType: string, courtNumber: string, calendar: CalendarEntity) {
     const html = await this.fetchHTML(courtType, courtNumber, calendar);
+
     const court = await this.htmlParser.parseHTML(html, calendar, courtType, courtNumber);
     return court;
   }
@@ -100,6 +101,7 @@ export default class CourtService {
         if (availableDate.availableTimes.length === 0) return;
 
         const newAvailableDate: AvailableDate = {
+          year: availableDate.year,
           month: availableDate.month,
           date: availableDate.date,
           availableTimes: []

@@ -21,9 +21,6 @@ export default class CourtBot {
   private courtNumbers: string[];
 
   /**  @deprecated use telegram message api */
-  private htmlParser = HTMLParser.getInstance();
-
-  /**  @deprecated use telegram message api */
   private mailerService = MailerService.getInstance();
 
   private logger = Logger.getInstance();
@@ -32,6 +29,8 @@ export default class CourtBot {
 
   private courtService = CourtService.getInstance();
 
+  private htmlParser = HTMLParser.getInstance();
+
   constructor(options: CourtBotOptions) {
     this.logger.setHeader(`[${options.courtName}]`);
     this.courtNumbers = options.courtNumbers;
@@ -39,31 +38,32 @@ export default class CourtBot {
     this.courtName = options.courtName;
   }
 
-  /**  @deprecated use telegram message api */
-  private async sendMail(courts: CourtEntity[]) {
-    if (courts.length === 0) return;
-    this.logger.log("메일 전송 중");
-    const html = this.htmlParser.generateHTML(courts);
-    await this.mailerService.sendMail(html, `${this.courtName} 예약 가능 코트 ${courts.length} 곳`);
-    this.logger.log("메일 전송 완료");
-  }
+  // /**  @deprecated use telegram message api */
+  // private async sendMail(courts: CourtEntity[]) {
+  //   if (courts.length === 0) return;
+  //   this.logger.log("메일 전송 중");
+  //   const html = this.htmlParser.generateHTML(courts);
+  //   await this.mailerService.sendMail(html, `${this.courtName} 예약 가능 코트 ${courts.length} 곳`);
+  //   this.logger.log("메일 전송 완료");
+  // }
 
   private async sendMessage(courts: CourtEntity[]) {
     if (courts.length === 0) return;
 
     try {
       this.logger.log("메시지 전송 중");
-      let msg = `${this.courtName} (${courts.length}곳)\n\n`;
-
+      let msg = `*${this.courtName} (${courts.length}곳)*`;
+      msg += "\n";
       courts.forEach((court) => {
-        msg += `${court.title}\n`;
+        msg += `*${court.title}*\n`;
         court.availableDates.forEach((availableDate) => {
           const targetDate = new Date();
+          targetDate.setFullYear(availableDate.year);
           targetDate.setMonth(availableDate.month - 1);
           targetDate.setDate(availableDate.date);
           msg += `${format(targetDate, "MMM do (E)", { locale: ko })}\n`;
           availableDate.availableTimes.forEach((availableTime) => {
-            msg += `${availableTime.time}\n`;
+            msg += `[${availableTime.time}](${this.htmlParser.createLink(court)})\n`;
           });
           msg += "\n";
         });
@@ -92,7 +92,6 @@ export default class CourtBot {
         this.courtNumbers,
         calendars
       );
-      // console.log(courts);
       this.logger.log("예약 가능한 코트 수", courts.length);
       this.sendMessage(courts);
     } catch (error) {
