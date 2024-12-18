@@ -94,7 +94,6 @@ export default class CourtBot {
       //   message: "테스팅",
       //   silent: false
       // });
-      // exampleUsage();
     } catch (error) {
       this.logger.error("에러 발생");
       if (error instanceof Error) {

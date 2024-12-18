@@ -35,9 +35,7 @@ class NextcloudTalkBot {
   private generateSignature(randomValue: string, requestBody: string): string {
     return crypto
       .createHmac("sha256", this.sharedSecret)
-      .update(randomValue)
-      .update(requestBody)
-      .setEncoding("utf-8")
+      .update(randomValue + requestBody)
       .digest("hex");
   }
 

@@ -1,5 +1,8 @@
 import express from "express";
 import crypto from "crypto";
+import Logger from "../app/logger";
+
+const logger = Logger.getInstance();
 
 const verifySignature = (sharedSecret: string) => {
   return (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -10,6 +13,10 @@ const verifySignature = (sharedSecret: string) => {
       res.status(401).json({ error: "Missing authentication headers" });
       return;
     }
+
+    logger.log(random, signature);
+    logger.log(sharedSecret);
+    logger.log(req.body);
 
     const body = JSON.stringify(req.body);
     const digest = crypto
