@@ -1,6 +1,6 @@
 import express from "express";
 import crypto from "crypto";
-import Logger from "../app/logger";
+import Logger from "../app/logger.js";
 
 const logger = Logger.getInstance();
 
