@@ -15,3 +15,7 @@ jobs:
         run: npm install
       - name: Build
         run: npm run build
+      - name: deploy
+        run: |
+          echo "Deploying to server"
+          ssh -i ${{ secrets.SSH_KEY }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ${{ secrets.DEPLOY_PATH }} && git pull && npm install && npm run build && pm2 restart 1"
