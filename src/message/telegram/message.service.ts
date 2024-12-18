@@ -1,6 +1,6 @@
 import Axios, { AxiosInstance } from "axios";
 import { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID } from "./message.config.js";
-import Logger from "../app/logger.js";
+import Logger from "../../app/logger.js";
 
 export interface Message {
   room: string;

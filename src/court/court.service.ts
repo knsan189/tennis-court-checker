@@ -15,6 +15,10 @@ export default class CourtService {
 
   private today = new Date();
 
+  private timestamp: Date = new Date();
+
+  private static instance: CourtService;
+
   constructor() {
     this.axios = Axios.create({
       baseURL: COURT_VIEW_URL
@@ -22,7 +26,10 @@ export default class CourtService {
   }
 
   public static getInstance() {
-    return new CourtService();
+    if (!CourtService.instance) {
+      CourtService.instance = new CourtService();
+    }
+    return CourtService.instance;
   }
 
   private checkDuplicate(title: string, month: number, date: number, time: string) {
@@ -62,6 +69,7 @@ export default class CourtService {
       )
       .flat();
 
+    this.timestamp = new Date();
     this.courts = await Promise.all(promiseArray);
     return this.courts;
   }
@@ -71,8 +79,8 @@ export default class CourtService {
     courtNumbers: string[],
     calendars: CalendarEntity[]
   ) {
-    const courtInfos = await this.fetchAllCourts(courtType, courtNumbers, calendars);
-    return this.filterDuplicateCourts(courtInfos);
+    await this.fetchAllCourts(courtType, courtNumbers, calendars);
+    return this.filterDuplicateCourts(this.courts);
   }
 
   public async filterDuplicateCourts(courts: CourtEntity[]) {
@@ -129,5 +137,9 @@ export default class CourtService {
     });
 
     return availableCourts;
+  }
+
+  public getLatestResponse() {
+    return { courts: this.courts, timestamp: this.timestamp, size: this.courts.length };
   }
 }

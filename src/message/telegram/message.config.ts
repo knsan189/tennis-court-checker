@@ -1,5 +1,5 @@
 import { configDotenv } from "dotenv";
-import validate from "../app/validator.js";
+import validate from "../../app/validator.js";
 
 configDotenv();
 

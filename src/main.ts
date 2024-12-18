@@ -1,5 +1,13 @@
-import { INTERVAL_TIME } from "./app/config.js";
+import { INTERVAL_TIME, LISTEN_PORT } from "./app/config.js";
 import CourtBot from "./court/court.bot.js";
+import app from "./app/app.js";
+import Logger from "./app/logger.js";
+
+const logger = Logger.getInstance();
+
+app.listen(LISTEN_PORT, () => {
+  logger.log("Server Listening Port :", LISTEN_PORT);
+});
 
 const bot1 = new CourtBot({
   courtType: "8",
@@ -13,7 +21,7 @@ const bot1 = new CourtBot({
 //   courtName: "서조체육시설"
 // });
 
-const startCheck = async () => {
+const startCheck = () => {
   const date = new Date();
   const thisMonth = date.getMonth() + 1;
   const thisYear = date.getFullYear();

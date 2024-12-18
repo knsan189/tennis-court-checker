@@ -15,7 +15,7 @@ export default class Logger {
     this.header = header;
   }
 
-  error(message: string) {
-    console.error(`[${new Date().toLocaleString()}]`, message);
+  error(...message: any[]) {
+    console.error(`[${new Date().toLocaleString()}]`, ...message);
   }
 }
