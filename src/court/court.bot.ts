@@ -6,7 +6,7 @@ import MessageService from "../message/telegram/message.service.js";
 import { CourtEntity } from "./entities/court.entity.js";
 import { CalendarEntity } from "./entities/calender.entity.js";
 import CourtService from "./court.service.js";
-import NextcloudTalkBot from "../message/nextcloud/nextcloudTalk.bot.js";
+import NextcloudTalkBot from "../nextcloud/nextcloud.bot.js";
 
 interface CourtBotOptions {
   courtType: string;
