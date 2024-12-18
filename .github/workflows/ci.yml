@@ -22,4 +22,6 @@ jobs:
       - name: deploy
         run: |
           echo "Deploying to server"
-          ssh -i ${{ secrets.SSH_KEY }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} -p ${{secrets.SSH_PORT}} "cd ${{ secrets.DEPLOY_PATH }} && git pull && npm install && npm run build && pm2 restart 1"
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} -p ${{secrets.SSH_PORT}} "cd ${{ secrets.DEPLOY_PATH }} && git pull && npm install && npm run build && pm2 restart 1"
