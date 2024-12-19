@@ -8,11 +8,6 @@ interface MessageOptions {
   silent?: boolean;
 }
 
-interface ReactionOptions {
-  messageId: number;
-  reaction: string;
-}
-
 class NextcloudTalkBot {
   private baseUrl: string;
 
@@ -57,10 +52,11 @@ class NextcloudTalkBot {
   private async makeApiRequest(
     method: "POST" | "DELETE",
     endpoint: string,
-    requestBody: string
+    requestBody: string,
+    message: string
   ): Promise<AxiosResponse> {
     const randomValue = this.generateRandomValue();
-    const signature = this.generateSignature(randomValue, requestBody);
+    const signature = this.generateSignature(randomValue, message);
 
     try {
       return await axios({
@@ -108,36 +104,36 @@ class NextcloudTalkBot {
       silent
     });
 
-    return this.makeApiRequest("POST", `/bot/${this.botToken}/message`, requestBody);
+    return this.makeApiRequest("POST", `/bot/${this.botToken}/message`, requestBody, message);
   }
 
-  /**
-   * 메시지에 리액션 추가 메서드
-   * @param options 리액션 옵션
-   * @returns 서버 응답
-   */
-  async addReaction(options: ReactionOptions): Promise<AxiosResponse> {
-    const { messageId, reaction } = options;
-    const requestBody = JSON.stringify({ reaction });
+  // /**
+  //  * 메시지에 리액션 추가 메서드
+  //  * @param options 리액션 옵션
+  //  * @returns 서버 응답
+  //  */
+  // async addReaction(options: ReactionOptions): Promise<AxiosResponse> {
+  //   const { messageId, reaction } = options;
+  //   const requestBody = JSON.stringify({ reaction });
 
-    return this.makeApiRequest("POST", `/bot/${this.botToken}/reaction/${messageId}`, requestBody);
-  }
+  //   return this.makeApiRequest("POST", `/bot/${this.botToken}/reaction/${messageId}`, requestBody);
+  // }
 
-  /**
-   * 메시지의 리액션 삭제 메서드
-   * @param options 리액션 옵션
-   * @returns 서버 응답
-   */
-  async deleteReaction(options: ReactionOptions): Promise<AxiosResponse> {
-    const { messageId, reaction } = options;
-    const requestBody = JSON.stringify({ reaction });
+  // /**
+  //  * 메시지의 리액션 삭제 메서드
+  //  * @param options 리액션 옵션
+  //  * @returns 서버 응답
+  //  */
+  // async deleteReaction(options: ReactionOptions): Promise<AxiosResponse> {
+  //   const { messageId, reaction } = options;
+  //   const requestBody = JSON.stringify({ reaction });
 
-    return this.makeApiRequest(
-      "DELETE",
-      `/bot/${this.botToken}/reaction/${messageId}`,
-      requestBody
-    );
-  }
+  //   return this.makeApiRequest(
+  //     "DELETE",
+  //     `/bot/${this.botToken}/reaction/${messageId}`,
+  //     requestBody
+  //   );
+  // }
 }
 
 export default NextcloudTalkBot;

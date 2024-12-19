@@ -2,7 +2,6 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import HTMLParser from "./utils/htmlParser.js";
 import Logger from "../app/logger.js";
-import MessageService from "../message/telegram/message.service.js";
 import { CourtEntity } from "./entities/court.entity.js";
 import { CalendarEntity } from "./entities/calender.entity.js";
 import CourtService from "./court.service.js";
@@ -21,8 +20,6 @@ export default class CourtBot {
   private courtNumbers: string[];
 
   private logger = Logger.getInstance();
-
-  private messageService = MessageService.getInstance();
 
   private courtService = CourtService.getInstance();
 
@@ -63,13 +60,10 @@ export default class CourtBot {
         });
       });
 
-      const message = {
-        room: "메인폰",
-        msg: msg.trim(),
-        sender: "courtChecker"
-      };
-
-      await this.messageService.sendMessage(message);
+      await this.nextCloudTalkBot.sendMessage({
+        message: msg.trim(),
+        silent: false
+      });
 
       this.logger.log("메시지 전송 완료");
     } catch (error) {
@@ -89,11 +83,6 @@ export default class CourtBot {
       );
       this.logger.log("예약 가능한 코트 수", courts.length);
       this.sendMessage(courts);
-
-      // await this.nextCloudTalkBot.sendMessage({
-      //   message: "테스팅",
-      //   silent: false
-      // });
     } catch (error) {
       this.logger.error("에러 발생");
       if (error instanceof Error) {

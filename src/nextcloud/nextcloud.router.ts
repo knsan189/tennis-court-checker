@@ -1,8 +1,25 @@
 import express from "express";
 import crypto from "crypto";
-import Logger from "../app/logger.js";
 
-const logger = Logger.getInstance();
+interface MessageEvent {
+  type: string;
+  actor: {
+    name: string;
+    id: string;
+    type: string;
+  };
+  object: {
+    type: string;
+    id: string;
+    content: string;
+    name: string;
+  };
+  target: {
+    id: string;
+    name: string;
+    type: string;
+  };
+}
 
 const verifySignature = (sharedSecret: string) => {
   return (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -20,9 +37,6 @@ const verifySignature = (sharedSecret: string) => {
       .update(random + body)
       .digest("hex");
 
-    console.log("Received signature:", signature);
-    console.log("Calculated signature:", digest);
-
     if (digest !== signature.toLowerCase()) {
       res.status(401).json({ error: "Invalid signature" });
       return;
@@ -36,7 +50,7 @@ const nextCloudRouter = express.Router();
 const BOT_SECRET = "5QR9Xt4kZmN7pL2wX6yH3fA8uE1jB0sDdqertvadfa";
 
 // 메시지 처리 핸들러
-async function handleNewMessage(event: any) {
+async function handleNewMessage(event: MessageEvent) {
   const { actor, object, target } = event;
 
   console.log("New message received:", {
@@ -50,7 +64,7 @@ async function handleNewMessage(event: any) {
 }
 
 // 봇 참가 이벤트 핸들러
-async function handleBotJoined(event: any) {
+async function handleBotJoined(event: MessageEvent) {
   const { actor, object } = event;
 
   console.log("Bot joined room:", {
@@ -63,7 +77,7 @@ async function handleBotJoined(event: any) {
 }
 
 // 봇 퇴장 이벤트 핸들러
-async function handleBotLeft(event: any) {
+async function handleBotLeft(event: MessageEvent) {
   const { actor, object } = event;
 
   console.log("Bot left room:", {
