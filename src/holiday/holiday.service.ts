@@ -71,7 +71,7 @@ export default class HolidayService {
         url: "/getRestDeInfo",
         params: {
           solYear: calendar.year,
-          solMonth: calendar.month,
+          solMonth: calendar.month.toString().padStart(2, "0"),
           _type: "json",
           ServiceKey: HOLIDAY_API_SERVICE_KEY
         }

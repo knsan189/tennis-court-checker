@@ -85,58 +85,6 @@ class HTMLParser {
     link.searchParams.append("menuNo", "351");
     return link.toString();
   }
-
-  // public generateHTML(courtInfos: CourtEntity[]): string {
-  //   const template = html`
-  //     <!doctype html>
-  //     <html lang="ko">
-  //       <head>
-  //         <meta charset="UTF-8" />
-  //         <title>테니스 코트 예약 가능 시간</title>
-  //       </head>
-  //       <body style="font-family: Arial, sans-serif; margin: 20px;">
-  //         <div style="max-width: 600px; margin: auto;">
-  //           <ul style="list-style-type: none; padding: 0;">
-  //             ${courtInfos.map((court) => {
-  //               const link = this.createLink(court);
-  //               return html`<li
-  //                 style="background-color: #f8f9fa; margin-bottom: 10px; padding: 10px; border-radius: 5px;"
-  //               >
-  //                 <a href="${link.toString()}" style="text-decoration: none; color: #007bff;"
-  //                   >${court.title}</a
-  //                 >
-  //                 <ul style="list-style-type: none; padding: 0; margin-top: 16px;">
-  //                   ${court.availableDates.map((date) => {
-  //                     const targetDate = new Date();
-  //                     targetDate.setMonth(date.month - 1);
-  //                     targetDate.setDate(date.date);
-  //                     return html` <li
-  //                       style="background-color: #f8f9fa; margin-bottom: 10px; padding: 10px; border-radius: 5px;"
-  //                     >
-  //                       ${format(targetDate, "MMM do (E)", { locale: ko })}
-  //                       <ul style="list-style-type: none; padding: 0; margin-top: 8px;">
-  //                         ${date.availableTimes.map(
-  //                           (time) =>
-  //                             html`<li
-  //                               style="display: inline-block; margin-right: 10px; background-color: #f8f9fa; padding: 10px; border-radius: 5px;"
-  //                             >
-  //                               ${time.time}
-  //                             </li>`
-  //                         )}
-  //                       </ul>
-  //                     </li>`;
-  //                   })}
-  //                 </ul>
-  //               </li>`;
-  //             })}
-  //           </ul>
-  //         </div>
-  //       </body>
-  //     </html>
-  //   `;
-
-  //   return template;
-  // }
 }
 
 export default HTMLParser;
