@@ -1,20 +1,14 @@
-import type { CalendarEntity } from "./calender.entity";
-
-export interface CourtEntity {
-  title: string;
-  availableDates: AvailableDate[];
+export interface CourtAvailableTime {
+  id: string;
   month: number;
   year: number;
-  courtType: string;
-  courtNumber: string;
-}
-
-export interface AvailableDate extends CalendarEntity {
-  date: number;
-  availableTimes: AvailableTime[];
-}
-
-export interface AvailableTime extends CalendarEntity {
   date: number;
   time: string;
+  /** 코트 이름  ex) 테니스장1 */
+  courtName: string;
+  /** 공원 타입 */
+  courtType: string;
+  /** 코트 ID */
+  courtNumber: string;
+  url: string;
 }

@@ -1,8 +1,7 @@
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import HTMLParser from "./utils/htmlParser.js";
 import Logger from "../app/logger.js";
-import { CourtEntity } from "./entities/court.entity.js";
+import { CourtAvailableTime } from "./entities/court.entity.js";
 import { CalendarEntity } from "./entities/calender.entity.js";
 import CourtService from "./court.service.js";
 import NextcloudTalkBot from "../nextcloud/nextcloud.bot.js";
@@ -10,8 +9,20 @@ import NextcloudTalkBot from "../nextcloud/nextcloud.bot.js";
 interface CourtBotOptions {
   courtType: string;
   courtNumbers: string[];
-  courtName: string;
+  placeName: string;
 }
+
+interface GroupedAvailableTime {
+  courtName: CourtAvailableTime["courtName"];
+  url: CourtAvailableTime["url"];
+  availableDates: {
+    year: number;
+    month: number;
+    date: number;
+    availableTimes: string[];
+  }[];
+}
+
 export default class CourtBot {
   private courtName: string;
 
@@ -23,8 +34,6 @@ export default class CourtBot {
 
   private courtService = CourtService.getInstance();
 
-  private htmlParser = HTMLParser.getInstance();
-
   private nextCloudTalkBot = new NextcloudTalkBot(
     "https://cloud.haneul.app",
     "65s2q3vv",
@@ -32,20 +41,65 @@ export default class CourtBot {
   );
 
   constructor(options: CourtBotOptions) {
-    this.logger.setHeader(`[${options.courtName}]`);
+    this.logger.setHeader(`[${options.placeName}]`);
     this.courtNumbers = options.courtNumbers;
     this.courtType = options.courtType;
-    this.courtName = options.courtName;
+    this.courtName = options.placeName;
   }
 
-  private async sendMessage(courts: CourtEntity[]) {
-    if (courts.length === 0) return;
+  private groupByCourtName(availableTimes: CourtAvailableTime[]): GroupedAvailableTime[] {
+    const groupedAvailableTime: GroupedAvailableTime[] = [];
+    availableTimes.forEach((availableTime) => {
+      const courtName = availableTime.courtName;
+      const court = groupedAvailableTime.find((grouped) => grouped.courtName === courtName);
+      if (court) {
+        const availableDate = court.availableDates.find(
+          (availableDate) =>
+            availableDate.year === availableTime.year &&
+            availableDate.month === availableTime.month &&
+            availableDate.date === availableTime.date
+        );
+        if (availableDate) {
+          availableDate.availableTimes.push(availableTime.time);
+        } else {
+          court.availableDates.push({
+            year: availableTime.year,
+            month: availableTime.month,
+            date: availableTime.date,
+            availableTimes: [availableTime.time]
+          });
+        }
+      } else {
+        groupedAvailableTime.push({
+          url: availableTime.url,
+          courtName,
+          availableDates: [
+            {
+              year: availableTime.year,
+              month: availableTime.month,
+              date: availableTime.date,
+              availableTimes: [availableTime.time]
+            }
+          ]
+        });
+      }
+    });
+    return groupedAvailableTime;
+  }
+
+  private async sendMessage(availableTimes: CourtAvailableTime[]) {
+    if (availableTimes.length === 0) {
+      this.logger.log("예약 가능한 코트 없음");
+      return;
+    }
+
+    const courts = this.groupByCourtName(availableTimes);
 
     try {
       this.logger.log("메시지 전송 중");
-      let msg = `### ${this.courtName} (${courts.length}곳) \n`;
+      let msg = `### ${this.courtName}\n`;
       courts.forEach((court) => {
-        msg += `#### ${court.title} \n`;
+        msg += `#### ${court.courtName}\n`;
         court.availableDates.forEach((availableDate) => {
           const targetDate = new Date();
           targetDate.setFullYear(availableDate.year);
@@ -53,8 +107,9 @@ export default class CourtBot {
           targetDate.setDate(availableDate.date);
           msg += `- **${format(targetDate, "MMM do (E)", { locale: ko })}** \n`;
           availableDate.availableTimes.forEach((availableTime) => {
-            msg += `[${availableTime.time}](${this.htmlParser.createLink(court)}) \n`;
+            msg += `[${availableTime}](${court.url}) \n`;
           });
+          msg += "\n";
         });
         msg += "--- \n";
       });
@@ -79,7 +134,7 @@ export default class CourtBot {
         this.courtNumbers,
         calendars
       );
-      this.logger.log("예약 가능한 코트 수", courts.length);
+      this.logger.log("예약 가능한 코트 시간 수", courts.length);
       this.sendMessage(courts);
     } catch (error) {
       this.logger.error("에러 발생");

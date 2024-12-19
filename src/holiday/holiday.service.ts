@@ -38,6 +38,8 @@ export default class HolidayService {
 
   private logger = Logger.getInstance();
 
+  private static instance: HolidayService;
+
   constructor() {
     this.axios = Axios.create({
       baseURL: HOLIDAY_API_URL,
@@ -48,7 +50,10 @@ export default class HolidayService {
   }
 
   public static getInstance() {
-    return new HolidayService();
+    if (!HolidayService.instance) {
+      HolidayService.instance = new HolidayService();
+    }
+    return HolidayService.instance;
   }
 
   private separateMonthDay(locdate: number) {

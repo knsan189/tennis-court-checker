@@ -1,6 +1,6 @@
 import Axios, { AxiosInstance } from "axios";
 import HTMLParser from "./utils/htmlParser.js";
-import { AvailableDate, CourtEntity } from "./entities/court.entity.js";
+import { CourtAvailableTime } from "./entities/court.entity.js";
 import { CalendarEntity } from "./entities/calender.entity.js";
 import { COURT_VIEW_URL } from "./court.config.js";
 
@@ -11,7 +11,7 @@ export default class CourtService {
 
   private DateSet = new Set<string>();
 
-  private courts: CourtEntity[] = [];
+  private availableTimes: CourtAvailableTime[] = [];
 
   private today = new Date();
 
@@ -30,11 +30,6 @@ export default class CourtService {
       CourtService.instance = new CourtService();
     }
     return CourtService.instance;
-  }
-
-  private checkDuplicate(title: string, month: number, date: number, time: string) {
-    const key = `${title}-${month}-${date}-${time}`;
-    return this.DateSet.has(key);
   }
 
   private async fetchHTML(courtType: string, courtNumber: string, calendar: CalendarEntity) {
@@ -57,7 +52,7 @@ export default class CourtService {
     return court;
   }
 
-  public async fetchAllCourts(
+  public async fetchCourtsAvailableTimes(
     courtType: string,
     courtNumbers: string[],
     calendars: CalendarEntity[]
@@ -69,8 +64,9 @@ export default class CourtService {
       .flat();
 
     this.timestamp = new Date();
-    this.courts = await Promise.all(promiseArray);
-    return this.courts;
+    const responses = await Promise.all(promiseArray);
+    this.availableTimes = responses.flat();
+    return this.availableTimes;
   }
 
   public async fetchAvailableCourts(
@@ -78,67 +74,30 @@ export default class CourtService {
     courtNumbers: string[],
     calendars: CalendarEntity[]
   ) {
-    await this.fetchAllCourts(courtType, courtNumbers, calendars);
-    return this.filterDuplicateCourts(this.courts);
+    await this.fetchCourtsAvailableTimes(courtType, courtNumbers, calendars);
+    return this.filterDuplicates(this.availableTimes);
   }
 
-  public async filterDuplicateCourts(courts: CourtEntity[]) {
-    const availableCourts: CourtEntity[] = [];
-
+  public async filterDuplicates(availableTimes: CourtAvailableTime[]) {
     if (this.today.getDate() !== new Date().getDate()) {
       this.DateSet.clear();
       this.today = new Date();
     }
 
-    courts.forEach((courtInfo) => {
-      if (courtInfo.availableDates.length === 0) {
-        return;
+    return availableTimes.filter((time) => {
+      if (this.DateSet.has(time.id)) {
+        return false;
       }
-
-      const newAvailableCourt: CourtEntity = {
-        title: courtInfo.title,
-        month: courtInfo.month,
-        year: courtInfo.year,
-        courtType: courtInfo.courtType,
-        courtNumber: courtInfo.courtNumber,
-        availableDates: []
-      };
-
-      courtInfo.availableDates.forEach((availableDate) => {
-        if (availableDate.availableTimes.length === 0) return;
-
-        const newAvailableDate: AvailableDate = {
-          year: availableDate.year,
-          month: availableDate.month,
-          date: availableDate.date,
-          availableTimes: []
-        };
-
-        availableDate.availableTimes.forEach((availableTime) => {
-          if (
-            this.checkDuplicate(
-              newAvailableCourt.title,
-              availableTime.month,
-              availableTime.date,
-              availableTime.time
-            )
-          )
-            return;
-          newAvailableDate.availableTimes.push(availableTime);
-          this.DateSet.add(
-            `${newAvailableCourt.title}-${availableTime.month}-${availableTime.date}-${availableTime.time}`
-          );
-        });
-        if (newAvailableDate.availableTimes.length > 0)
-          newAvailableCourt.availableDates.push(newAvailableDate);
-      });
-      if (newAvailableCourt.availableDates.length > 0) availableCourts.push(newAvailableCourt);
+      this.DateSet.add(time.id);
+      return true;
     });
-
-    return availableCourts;
   }
 
   public getLatestResponse() {
-    return { courts: this.courts, timestamp: this.timestamp, size: this.courts.length };
+    return {
+      availableTimes: this.availableTimes,
+      timestamp: this.timestamp,
+      size: this.availableTimes.length
+    };
   }
 }

@@ -12,7 +12,7 @@ app.listen(LISTEN_PORT, () => {
 const bot1 = new CourtBot({
   courtType: "8",
   courtNumbers: ["07", "08", "09", "10", "11", "12", "13", "14"],
-  courtName: "새물공원"
+  placeName: "새물공원"
 });
 
 // const bot2 = new CourtBot({
