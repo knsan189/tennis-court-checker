@@ -43,21 +43,20 @@ export default class CourtBot {
 
     try {
       this.logger.log("메시지 전송 중");
-      let msg = `### ${this.courtName} (${courts.length}곳)\n`;
-
+      let msg = `### ${this.courtName} (${courts.length}곳) \n`;
       courts.forEach((court) => {
-        msg += `#### ${court.title}\n`;
+        msg += `#### ${court.title} \n`;
         court.availableDates.forEach((availableDate) => {
           const targetDate = new Date();
           targetDate.setFullYear(availableDate.year);
           targetDate.setMonth(availableDate.month - 1);
           targetDate.setDate(availableDate.date);
-          msg += `- **${format(targetDate, "MMM do (E)", { locale: ko })}**\n`;
+          msg += `- **${format(targetDate, "MMM do (E)", { locale: ko })}** \n`;
           availableDate.availableTimes.forEach((availableTime) => {
-            msg += `[${availableTime.time}](${this.htmlParser.createLink(court)})\n`;
+            msg += `[${availableTime.time}](${this.htmlParser.createLink(court)}) \n`;
           });
         });
-        msg += "---\n";
+        msg += "--- \n";
       });
       await this.nextCloudTalkBot.sendMessage({
         message: msg.trim(),
