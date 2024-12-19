@@ -93,7 +93,7 @@ class NextcloudTalkBot {
     const {
       message,
       replyTo = null,
-      referenceId = crypto.randomBytes(32).toString("hex"),
+      referenceId = crypto.randomBytes(16).toString("hex"),
       silent = false
     } = messageOptions;
 

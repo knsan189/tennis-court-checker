@@ -14,15 +14,14 @@ const verifySignature = (sharedSecret: string) => {
       return;
     }
 
-    logger.log(random, signature);
-    logger.log(sharedSecret);
-    logger.log(req.body);
-
     const body = JSON.stringify(req.body);
     const digest = crypto
       .createHmac("sha256", sharedSecret)
       .update(random + body)
       .digest("hex");
+
+    console.log("Received signature:", signature);
+    console.log("Calculated signature:", digest);
 
     if (digest !== signature.toLowerCase()) {
       res.status(401).json({ error: "Invalid signature" });
