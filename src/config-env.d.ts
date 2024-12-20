@@ -16,5 +16,8 @@ declare namespace NodeJS {
     COURT_RESERVATION_URL: string;
     HOLIDAY_API_URL: string;
     HOLIDAY_API_SERVICE_KEY: string;
+    NEXTCLOUD_URL: string;
+    NEXTCLOUD_BOT_TOKEN: string;
+    NEXTCLOUD_CONVERSATION_ID: string;
   }
 }
