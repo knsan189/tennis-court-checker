@@ -7,7 +7,7 @@ import { COURT_VIEW_URL } from "./court.config.js";
 export default class CourtService {
   private axios: AxiosInstance;
 
-  private htmlParser = new HTMLParser();
+  private htmlParser = HTMLParser.getInstance();
 
   private DateSet = new Set<string>();
 

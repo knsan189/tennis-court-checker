@@ -5,78 +5,102 @@ import { CalendarEntity } from "../entities/calender.entity.js";
 import { COURT_RESERVATION_URL } from "../court.config.js";
 
 class HTMLParser {
-  private regex = /\n|\t/g;
-
-  private today = new Date();
-
-  private holidays: Holiday[] = [];
-
-  private holidayService = HolidayService.getInstance();
-
   private static instance: HTMLParser;
+  private readonly WHITESPACE_REGEX = /\n|\t/g;
+  private readonly NIGHT_TIMES = ["19:00", "20:00", "21:00", "22:00"];
+  private readonly WEEKEND_DAYS = [0, 6];
+  private readonly WEDNESDAY = 3;
 
-  private checkDateIsHoliday(date: number, calendar: CalendarEntity): boolean {
+  private courtName = "";
+  private courtType = "";
+  private calendar: CalendarEntity = { month: 0, year: 0 };
+  private courtNumber = "";
+  private holidays: Holiday[] = [];
+  private $: cheerio.CheerioAPI = cheerio.load("");
+
+  private readonly holidayService = HolidayService.getInstance();
+
+  private constructor() {}
+
+  public static getInstance(): HTMLParser {
+    if (!HTMLParser.instance) {
+      HTMLParser.instance = new HTMLParser();
+    }
+    return HTMLParser.instance;
+  }
+
+  private createDateForCalendar(day: number): Date {
+    const date = new Date();
+    date.setFullYear(this.calendar.year);
+    date.setMonth(this.calendar.month - 1);
+    date.setDate(day);
+    return date;
+  }
+
+  private isHoliday(day: number): boolean {
     return this.holidays.some(
-      (holiday) => holiday.day === date && holiday.month === calendar.month
+      (holiday) => holiday.day === day && holiday.month === this.calendar.month
     );
   }
 
-  private checkDateIsWeekend(date: number, calendar: CalendarEntity): boolean {
-    this.today = new Date();
-    this.today.setFullYear(calendar.year);
-    this.today.setDate(date);
-    this.today.setMonth(calendar.month - 1);
-    const dayOfWeek = this.today.getDay();
-    const days = [0, 6];
-    return days.includes(dayOfWeek);
+  private isWeekend(day: number): boolean {
+    const dayOfWeek = this.createDateForCalendar(day).getDay();
+    return this.WEEKEND_DAYS.includes(dayOfWeek);
   }
 
-  private checkDateIsWednesday(date: number, calendar: CalendarEntity): boolean {
-    this.today = new Date();
-    this.today.setFullYear(calendar.year);
-    this.today.setDate(date);
-    this.today.setMonth(calendar.month - 1);
-    const dayOfWeek = this.today.getDay();
-    return dayOfWeek === 3;
+  private isWednesday(day: number): boolean {
+    return this.createDateForCalendar(day).getDay() === this.WEDNESDAY;
   }
 
-  private checkIsNightTime(time: CourtAvailableTime["time"]): boolean {
-    const nightTime = ["19:00", "20:00", "21:00", "22:00"];
-    return nightTime.includes(time);
+  private isNightTime(time: string): boolean {
+    return this.NIGHT_TIMES.includes(time);
   }
 
-  public static getInstance() {
-    if (!this.instance) {
-      this.instance = new HTMLParser();
-    }
-    return this.instance;
+  private parseListItem(li: cheerio.Cheerio<cheerio.Element>): string {
+    return li.text().trim().replace(this.WHITESPACE_REGEX, "").replace(" [신청]", "");
   }
 
-  private parseListItem(li: cheerio.Cheerio<cheerio.Element>): CourtAvailableTime["time"] {
-    return li.text().trim().replace(this.regex, "").replace(" [신청]", "");
-  }
-
-  private createCourtAvailability(
-    date: number,
-    time: string,
-    courtName: string,
-    courtType: string,
-    courtNumber: string,
-    calendar: CalendarEntity
-  ): CourtAvailableTime {
+  private createCourtAvailability(day: number, time: string): CourtAvailableTime {
     const courtData = {
-      id: `${courtNumber}-${calendar.year}-${calendar.month}-${date}-${time}`,
-      date,
+      id: `${this.courtNumber}-${this.calendar.year}-${this.calendar.month}-${day}-${time}`,
+      date: day,
       time,
-      courtName,
-      courtType,
-      courtNumber,
-      month: calendar.month,
-      year: calendar.year,
+      courtName: this.courtName,
+      courtType: this.courtType,
+      courtNumber: this.courtNumber,
+      month: this.calendar.month,
+      year: this.calendar.year,
       url: ""
     };
 
-    return { ...courtData, url: this.createLink(courtData) };
+    return { ...courtData, url: this.createReservationLink(courtData) };
+  }
+
+  private processWeekendOrHoliday(
+    td: cheerio.Cheerio<cheerio.Element>,
+    day: number
+  ): CourtAvailableTime[] {
+    const availableTimes: CourtAvailableTime[] = [];
+    this.$("li.blu", this.$("ul", td)).each((_, element) => {
+      const time = this.parseListItem(this.$(element));
+      availableTimes.push(this.createCourtAvailability(day, time));
+    });
+    return availableTimes;
+  }
+
+  private processWednesday(
+    td: cheerio.Cheerio<cheerio.Element>,
+    day: number
+  ): CourtAvailableTime[] {
+    const availableTimes: CourtAvailableTime[] = [];
+    this.$("li.blu", this.$("ul", td)).each((_, element) => {
+      const time = this.parseListItem(this.$(element));
+      const startTime = time.split("~")[0];
+      if (this.isNightTime(startTime)) {
+        availableTimes.push(this.createCourtAvailability(day, time));
+      }
+    });
+    return availableTimes;
   }
 
   public async parseHTML(
@@ -86,51 +110,44 @@ class HTMLParser {
     courtNumber: string
   ): Promise<CourtAvailableTime[]> {
     try {
+      this.$ = cheerio.load(htmlString);
+
+      // Initialize state
+      this.calendar = calendar;
+      this.courtType = courtType;
+      this.courtNumber = courtNumber;
+      this.courtName = this.$("option:selected", this.$("#flag")).text().trim();
       this.holidays = await this.holidayService.fetchHoliday(calendar);
-      const $ = cheerio.load(htmlString);
-      const courtName = $("option:selected", $("#flag")).text().trim();
-      const availableTimes: CourtAvailableTime[] = [];
 
-      $("td", $(".calendar")).each((_, tdElement) => {
-        const td = $(tdElement);
-        const date = Number($("span.day", td).text().trim());
-
-        if (this.checkDateIsWeekend(date, calendar) || this.checkDateIsHoliday(date, calendar)) {
-          $("li.blu", $("ul", td)).each((_, element) => {
-            const time = this.parseListItem($(element));
-            availableTimes.push(
-              this.createCourtAvailability(date, time, courtName, courtType, courtNumber, calendar)
-            );
-          });
-        }
-
-        if (this.checkDateIsWednesday(date, calendar)) {
-          $("li.blu", $("ul", td)).each((_, element) => {
-            const time = this.parseListItem($(element));
-            if (this.checkIsNightTime(time.split("~")[0])) {
-              availableTimes.push(
-                this.createCourtAvailability(
-                  date,
-                  time,
-                  courtName,
-                  courtType,
-                  courtNumber,
-                  calendar
-                )
-              );
-            }
-          });
-        }
-      });
-
-      return availableTimes;
+      return this.extractAvailableTimes();
     } catch (error) {
       console.error("Error parsing HTML:", error);
       return [];
     }
   }
 
-  public createLink(availableTime: CourtAvailableTime): string {
+  private extractAvailableTimes(): CourtAvailableTime[] {
+    const availableTimes: CourtAvailableTime[] = [];
+
+    this.$("td", this.$(".calendar")).each((_, tdElement) => {
+      const td = this.$(tdElement);
+      const day = Number(this.$("span.day", td).text().trim());
+
+      if (!day) return; // Skip cells without valid dates
+
+      if (this.isWeekend(day) || this.isHoliday(day)) {
+        availableTimes.push(...this.processWeekendOrHoliday(td, day));
+      }
+
+      if (this.isWednesday(day)) {
+        availableTimes.push(...this.processWednesday(td, day));
+      }
+    });
+
+    return availableTimes;
+  }
+
+  public createReservationLink(availableTime: CourtAvailableTime): string {
     const link = new URL(COURT_RESERVATION_URL);
     link.searchParams.append("flag", availableTime.courtNumber);
     link.searchParams.append("month", availableTime.month.toString());
