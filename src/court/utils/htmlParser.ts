@@ -31,11 +31,52 @@ class HTMLParser {
     return days.includes(dayOfWeek);
   }
 
+  private checkDateIsWednesday(date: number, calendar: CalendarEntity): boolean {
+    this.today = new Date();
+    this.today.setFullYear(calendar.year);
+    this.today.setDate(date);
+    this.today.setMonth(calendar.month - 1);
+    const dayOfWeek = this.today.getDay();
+    return dayOfWeek === 3;
+  }
+
+  private checkIsNightTime(time: CourtAvailableTime["time"]): boolean {
+    const nightTime = ["19:00", "20:00", "21:00", "22:00"];
+    return nightTime.includes(time);
+  }
+
   public static getInstance() {
     if (!this.instance) {
       this.instance = new HTMLParser();
     }
     return this.instance;
+  }
+
+  private parseListItem(li: cheerio.Cheerio<cheerio.Element>): CourtAvailableTime["time"] {
+    return li.text().trim().replace(this.regex, "").replace(" [신청]", "");
+  }
+
+  private createCourtAvailability(
+    date: number,
+    time: string,
+    courtName: string,
+    courtType: string,
+    courtNumber: string,
+    calendar: CalendarEntity
+  ): CourtAvailableTime {
+    const courtData = {
+      id: `${courtNumber}-${calendar.year}-${calendar.month}-${date}-${time}`,
+      date,
+      time,
+      courtName,
+      courtType,
+      courtNumber,
+      month: calendar.month,
+      year: calendar.year,
+      url: ""
+    };
+
+    return { ...courtData, url: this.createLink(courtData) };
   }
 
   public async parseHTML(
@@ -44,40 +85,49 @@ class HTMLParser {
     courtType: string,
     courtNumber: string
   ): Promise<CourtAvailableTime[]> {
-    this.holidays = await this.holidayService.fetchHoliday(calendar);
+    try {
+      this.holidays = await this.holidayService.fetchHoliday(calendar);
+      const $ = cheerio.load(htmlString);
+      const courtName = $("option:selected", $("#flag")).text().trim();
+      const availableTimes: CourtAvailableTime[] = [];
 
-    const $ = cheerio.load(htmlString);
-    const select = $("#flag");
-    const option = $("option:selected", select);
-    const availableTimes: CourtAvailableTime[] = [];
-    const courtName = option.text().trim();
-    const calendarElement = $(".calendar");
+      $("td", $(".calendar")).each((_, tdElement) => {
+        const td = $(tdElement);
+        const date = Number($("span.day", td).text().trim());
 
-    $("td", calendarElement).each((i, tdElement) => {
-      const td = $(tdElement);
-      const date = Number($("span.day", td).text().trim());
-      if (this.checkDateIsWeekend(date, calendar) || this.checkDateIsHoliday(date, calendar)) {
-        const ul = $("ul", td);
-        $("li.blu", ul).each((j, liElement) => {
-          const li = $(liElement);
-          const time = li.text().trim().replace(this.regex, "").replace(" [신청]", "");
-          const newCourt = {
-            id: `${courtNumber}-${calendar.year}-${calendar.month}-${date}-${time}`,
-            date,
-            time,
-            courtName,
-            courtType,
-            courtNumber,
-            month: calendar.month,
-            year: calendar.year,
-            url: ""
-          };
-          availableTimes.push({ ...newCourt, url: this.createLink(newCourt) });
-        });
-      }
-    });
+        if (this.checkDateIsWeekend(date, calendar) || this.checkDateIsHoliday(date, calendar)) {
+          $("li.blu", $("ul", td)).each((_, element) => {
+            const time = this.parseListItem($(element));
+            availableTimes.push(
+              this.createCourtAvailability(date, time, courtName, courtType, courtNumber, calendar)
+            );
+          });
+        }
 
-    return availableTimes;
+        if (this.checkDateIsWednesday(date, calendar)) {
+          $("li.blu", $("ul", td)).each((_, element) => {
+            const time = this.parseListItem($(element));
+            if (this.checkIsNightTime(time.split("~")[0])) {
+              availableTimes.push(
+                this.createCourtAvailability(
+                  date,
+                  time,
+                  courtName,
+                  courtType,
+                  courtNumber,
+                  calendar
+                )
+              );
+            }
+          });
+        }
+      });
+
+      return availableTimes;
+    } catch (error) {
+      console.error("Error parsing HTML:", error);
+      return [];
+    }
   }
 
   public createLink(availableTime: CourtAvailableTime): string {

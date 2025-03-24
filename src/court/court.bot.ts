@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import Logger from "../app/logger.js";
 import { CourtAvailableTime } from "./entities/court.entity.js";
-import { CalendarEntity } from "./entities/calender.entity.js";
+import { CalendarDateEntity, CalendarEntity } from "./entities/calender.entity.js";
 import CourtService from "./court.service.js";
 import NextcloudTalkBot from "../nextcloud/nextcloud.bot.js";
 import {
@@ -10,6 +10,7 @@ import {
   NEXTCLOUD_CONVERSATION_ID,
   NEXTCLOUD_URL
 } from "../nextcloud/nextcloud.config.js";
+import MailerService from "../mailer/mailer.service.js";
 
 interface CourtBotOptions {
   courtType: string;
@@ -20,11 +21,11 @@ interface CourtBotOptions {
 interface GroupedAvailableTime {
   courtName: CourtAvailableTime["courtName"];
   url: CourtAvailableTime["url"];
-  availableDates: {
+  dates: {
     year: number;
     month: number;
     date: number;
-    availableTimes: string[];
+    times: string[];
   }[];
 }
 
@@ -39,6 +40,8 @@ export default class CourtBot {
 
   private courtService = CourtService.getInstance();
 
+  private mailService = MailerService.getInstance();
+
   private nextCloudTalkBot = new NextcloudTalkBot(
     NEXTCLOUD_URL,
     NEXTCLOUD_CONVERSATION_ID,
@@ -52,38 +55,37 @@ export default class CourtBot {
     this.courtName = options.placeName;
   }
 
+  private isSameDate(date1: CalendarDateEntity, date2: CalendarDateEntity) {
+    return date1.year === date2.year && date1.month === date2.month && date1.date === date2.date;
+  }
+
   private groupByCourtName(availableTimes: CourtAvailableTime[]): GroupedAvailableTime[] {
     const groupedAvailableTime: GroupedAvailableTime[] = [];
     availableTimes.forEach((availableTime) => {
       const courtName = availableTime.courtName;
       const court = groupedAvailableTime.find((grouped) => grouped.courtName === courtName);
       if (court) {
-        const availableDate = court.availableDates.find(
-          (availableDate) =>
-            availableDate.year === availableTime.year &&
-            availableDate.month === availableTime.month &&
-            availableDate.date === availableTime.date
-        );
+        const availableDate = court.dates.find((date) => this.isSameDate(date, availableTime));
         if (availableDate) {
-          availableDate.availableTimes.push(availableTime.time);
+          availableDate.times.push(availableTime.time);
         } else {
-          court.availableDates.push({
+          court.dates.push({
             year: availableTime.year,
             month: availableTime.month,
             date: availableTime.date,
-            availableTimes: [availableTime.time]
+            times: [availableTime.time]
           });
         }
       } else {
         groupedAvailableTime.push({
           url: availableTime.url,
           courtName,
-          availableDates: [
+          dates: [
             {
               year: availableTime.year,
               month: availableTime.month,
               date: availableTime.date,
-              availableTimes: [availableTime.time]
+              times: [availableTime.time]
             }
           ]
         });
@@ -96,13 +98,13 @@ export default class CourtBot {
     let msg = `## ${this.courtName}\n`;
     courts.forEach((court, index) => {
       msg += `### ${court.courtName}\n`;
-      court.availableDates.forEach((availableDate) => {
+      court.dates.forEach((date) => {
         const targetDate = new Date();
-        targetDate.setFullYear(availableDate.year, availableDate.month - 1, availableDate.date);
+        targetDate.setFullYear(date.year, date.month - 1, date.date);
         const formattedDate = format(targetDate, "MMM do (E)", { locale: ko });
         msg += `- **${formattedDate}** \n`;
-        availableDate.availableTimes.forEach((availableTime, i) => {
-          msg += `[${availableTime}](${court.url})`;
+        date.times.forEach((time, i) => {
+          msg += `[${time}](${court.url})`;
           msg += (i + 1) % 4 === 0 ? "\n" : " ";
         });
         msg += "\n";
@@ -128,6 +130,7 @@ export default class CourtBot {
         message: this.createMarkdownMessage(courts),
         silent: false
       });
+
       this.logger.log("메시지 전송 완료");
     } catch (error) {
       if (error instanceof Error) {

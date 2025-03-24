@@ -85,7 +85,7 @@ class NextcloudTalkBot {
    * @param messageOptions 메시지 옵션
    * @returns 서버 응답
    */
-  async sendMessage(messageOptions: MessageOptions): Promise<AxiosResponse> {
+  async sendMessage(messageOptions: MessageOptions): Promise<void> {
     const {
       message,
       replyTo = null,
@@ -97,14 +97,33 @@ class NextcloudTalkBot {
       throw new Error("메시지는 비워둘 수 없습니다");
     }
 
-    const requestBody = JSON.stringify({
-      message,
-      replyTo,
-      referenceId,
-      silent
-    });
+    const maxMessageLength = 4096;
+    let startIndex = 0;
 
-    return this.makeApiRequest("POST", `/bot/${this.botToken}/message`, requestBody, message);
+    while (startIndex < message.length) {
+      const endIndex = Math.min(startIndex + maxMessageLength, message.length);
+      const chunk = message.substring(startIndex, endIndex);
+
+      const requestBody = JSON.stringify({
+        message: chunk,
+        replyTo,
+        referenceId,
+        silent
+      });
+
+      await this.makeApiRequest("POST", `/bot/${this.botToken}/message`, requestBody, chunk);
+      startIndex = endIndex;
+    }
+
+    return;
+    // const requestBody = JSON.stringify({
+    //   message,
+    //   replyTo,
+    //   referenceId,
+    //   silent
+    // });
+
+    // return this.makeApiRequest("POST", `/bot/${this.botToken}/message`, requestBody, message);
   }
 
   // /**

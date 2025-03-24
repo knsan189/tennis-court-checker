@@ -1,4 +1,4 @@
-import Axios from "axios";
+import Axios, { AxiosResponse } from "axios";
 import { CalendarEntity } from "../court/entities/calender.entity.js";
 import { HOLIDAY_API_SERVICE_KEY, HOLIDAY_API_URL } from "./holiday.config.js";
 import Logger from "../app/logger.js";
@@ -51,9 +51,9 @@ export default class HolidayService {
 
   public static getInstance() {
     if (!HolidayService.instance) {
-      HolidayService.instance = new HolidayService();
+      this.instance = new HolidayService();
     }
-    return HolidayService.instance;
+    return this.instance;
   }
 
   private separateMonthDay(locdate: number) {
@@ -61,6 +61,15 @@ export default class HolidayService {
     const month = parseInt(date.substring(4, 6), 10);
     const day = parseInt(date.substring(6, 8), 10);
     return { month, day };
+  }
+
+  private parseResponse(response: AxiosResponse<FetchHolidayResponse>): Holiday[] {
+    if (response.data.response.body.items.item === undefined) {
+      return [];
+    }
+    return Array.isArray(response.data.response.body.items.item)
+      ? response.data.response.body.items.item.map((item) => this.separateMonthDay(item.locdate))
+      : [this.separateMonthDay(response.data.response.body.items.item.locdate)];
   }
 
   public async fetchHoliday(calendar: CalendarEntity): Promise<Holiday[]> {
@@ -82,19 +91,7 @@ export default class HolidayService {
         }
       });
 
-      const holidayItems = response.data.response.body.items.item;
-
-      if (!holidayItems) {
-        return [];
-      }
-
-      let holidays: Holiday[] = [];
-
-      if (Array.isArray(holidayItems)) {
-        holidays = holidayItems.map((item) => this.separateMonthDay(item.locdate));
-      } else {
-        holidays = [this.separateMonthDay(holidayItems.locdate)];
-      }
+      const holidays = this.parseResponse(response);
 
       if (this.responseMap.size > 12) {
         this.responseMap.clear();
