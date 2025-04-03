@@ -7,7 +7,7 @@ import { COURT_RESERVATION_URL } from "../court.config.js";
 class HTMLParser {
   private static instance: HTMLParser;
   private readonly WHITESPACE_REGEX = /\n|\t/g;
-  private readonly NIGHT_TIMES = ["19:00", "20:00", "21:00", "22:00"];
+  private readonly NIGHT_TIMES = ["19:00", "20:00", "21:00"];
   private readonly WEEKEND_DAYS = [0, 6];
   private readonly WEDNESDAY = 3;
 
@@ -72,7 +72,6 @@ class HTMLParser {
       year: this.calendar.year,
       url: ""
     };
-
     return { ...courtData, url: this.createReservationLink(courtData) };
   }
 
@@ -137,6 +136,7 @@ class HTMLParser {
 
       if (this.isWeekend(day) || this.isHoliday(day)) {
         availableTimes.push(...this.processWeekendOrHoliday(td, day));
+        return;
       }
 
       if (this.isWednesday(day)) {

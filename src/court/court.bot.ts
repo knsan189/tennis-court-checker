@@ -2,7 +2,7 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import Logger from "../app/logger.js";
 import { CourtAvailableTime } from "./entities/court.entity.js";
-import { CalendarDateEntity, CalendarEntity } from "./entities/calender.entity.js";
+import { CalendarEntity } from "./entities/calender.entity.js";
 import CourtService from "./court.service.js";
 import NextcloudTalkBot from "../nextcloud/nextcloud.bot.js";
 import {
@@ -18,105 +18,63 @@ interface CourtBotOptions {
   placeName: string;
 }
 
+interface DateWithTimes {
+  year: number;
+  month: number;
+  date: number;
+  times: string[];
+}
+
 interface GroupedAvailableTime {
   courtName: CourtAvailableTime["courtName"];
   url: CourtAvailableTime["url"];
-  dates: {
-    year: number;
-    month: number;
-    date: number;
-    times: string[];
-  }[];
+  dates: DateWithTimes[];
 }
 
 export default class CourtBot {
   private courtName: string;
-
   private courtType: string;
-
   private courtNumbers: string[];
-
   private logger = Logger.getInstance();
+  private courtService: CourtService;
+  private mailService: MailerService;
+  private nextCloudTalkBot: NextcloudTalkBot;
 
-  private courtService = CourtService.getInstance();
-
-  private mailService = MailerService.getInstance();
-
-  private nextCloudTalkBot = new NextcloudTalkBot(
-    NEXTCLOUD_URL,
-    NEXTCLOUD_CONVERSATION_ID,
-    NEXTCLOUD_BOT_TOKEN
-  );
-
-  constructor(options: CourtBotOptions) {
+  constructor(
+    options: CourtBotOptions,
+    courtService = CourtService.getInstance(),
+    mailService = MailerService.getInstance(),
+    nextCloudBot = new NextcloudTalkBot(
+      NEXTCLOUD_URL,
+      NEXTCLOUD_CONVERSATION_ID,
+      NEXTCLOUD_BOT_TOKEN
+    )
+  ) {
     this.logger.setHeader(`[${options.placeName}]`);
     this.courtNumbers = options.courtNumbers;
     this.courtType = options.courtType;
     this.courtName = options.placeName;
+    this.courtService = courtService;
+    this.mailService = mailService;
+    this.nextCloudTalkBot = nextCloudBot;
   }
 
-  private isSameDate(date1: CalendarDateEntity, date2: CalendarDateEntity) {
-    return date1.year === date2.year && date1.month === date2.month && date1.date === date2.date;
+  public async init(calendars: CalendarEntity[]): Promise<void> {
+    try {
+      this.logger.log("예약 가능한 코트 찾는 중");
+      const courts = await this.fetchAvailableCourts(calendars);
+      this.logger.log("예약 가능한 코트 시간 수", courts.length);
+      await this.sendMessage(courts);
+    } catch (error) {
+      this.handleError("코트 초기화 중 에러 발생", error);
+    }
   }
 
-  private groupByCourtName(availableTimes: CourtAvailableTime[]): GroupedAvailableTime[] {
-    const groupedAvailableTime: GroupedAvailableTime[] = [];
-    availableTimes.forEach((availableTime) => {
-      const courtName = availableTime.courtName;
-      const court = groupedAvailableTime.find((grouped) => grouped.courtName === courtName);
-      if (court) {
-        const availableDate = court.dates.find((date) => this.isSameDate(date, availableTime));
-        if (availableDate) {
-          availableDate.times.push(availableTime.time);
-        } else {
-          court.dates.push({
-            year: availableTime.year,
-            month: availableTime.month,
-            date: availableTime.date,
-            times: [availableTime.time]
-          });
-        }
-      } else {
-        groupedAvailableTime.push({
-          url: availableTime.url,
-          courtName,
-          dates: [
-            {
-              year: availableTime.year,
-              month: availableTime.month,
-              date: availableTime.date,
-              times: [availableTime.time]
-            }
-          ]
-        });
-      }
-    });
-    return groupedAvailableTime;
+  private async fetchAvailableCourts(calendars: CalendarEntity[]): Promise<CourtAvailableTime[]> {
+    return this.courtService.fetchAvailableCourts(this.courtType, this.courtNumbers, calendars);
   }
 
-  private createMarkdownMessage(courts: GroupedAvailableTime[]) {
-    let msg = `## ${this.courtName}\n`;
-    courts.forEach((court, index) => {
-      msg += `### ${court.courtName}\n`;
-      court.dates.forEach((date) => {
-        const targetDate = new Date();
-        targetDate.setFullYear(date.year, date.month - 1, date.date);
-        const formattedDate = format(targetDate, "MMM do (E)", { locale: ko });
-        msg += `- **${formattedDate}** \n`;
-        date.times.forEach((time, i) => {
-          msg += `[${time}](${court.url})`;
-          msg += (i + 1) % 4 === 0 ? "\n" : " ";
-        });
-        msg += "\n";
-      });
-      if (index !== courts.length - 1) {
-        msg += "--- \n";
-      }
-    });
-    return msg.trim();
-  }
-
-  private async sendMessage(availableTimes: CourtAvailableTime[]) {
+  private async sendMessage(availableTimes: CourtAvailableTime[]): Promise<void> {
     try {
       if (availableTimes.length === 0) {
         this.logger.log("예약 가능한 코트 없습니다.");
@@ -124,36 +82,94 @@ export default class CourtBot {
       }
 
       const courts = this.groupByCourtName(availableTimes);
+      const message = this.createMarkdownMessage(courts);
 
       this.logger.log("메시지 전송 중");
       await this.nextCloudTalkBot.sendMessage({
-        message: this.createMarkdownMessage(courts),
+        message,
         silent: false
       });
-
       this.logger.log("메시지 전송 완료");
     } catch (error) {
-      if (error instanceof Error) {
-        this.logger.error(error.message);
-      }
+      this.handleError("메시지 전송 중 에러 발생", error);
     }
   }
 
-  public async init(calendars: CalendarEntity[]) {
-    try {
-      this.logger.log("예약 가능한 코트 찾는 중");
-      const courts = await this.courtService.fetchAvailableCourts(
-        this.courtType,
-        this.courtNumbers,
-        calendars
-      );
-      this.logger.log("예약 가능한 코트 시간 수", courts.length);
-      this.sendMessage(courts);
-    } catch (error) {
-      this.logger.error("에러 발생");
-      if (error instanceof Error) {
-        this.logger.error(error.message);
+  private groupByCourtName(availableTimes: CourtAvailableTime[]): GroupedAvailableTime[] {
+    const groupedAvailableTime: GroupedAvailableTime[] = [];
+
+    availableTimes.forEach((availableTime) => {
+      const { courtName, url, year, month, date, time } = availableTime;
+      const existingCourt = groupedAvailableTime.find((court) => court.courtName === courtName);
+
+      if (existingCourt) {
+        this.addTimeToExistingCourt(existingCourt, { year, month, date, time });
+      } else {
+        groupedAvailableTime.push({
+          courtName,
+          url,
+          dates: [{ year, month, date, times: [time] }]
+        });
       }
+    });
+
+    return groupedAvailableTime;
+  }
+
+  private addTimeToExistingCourt(
+    court: GroupedAvailableTime,
+    { year, month, date, time }: Pick<CourtAvailableTime, "year" | "month" | "date" | "time">
+  ): void {
+    const existingDate = court.dates.find(
+      (d) => d.year === year && d.month === month && d.date === date
+    );
+
+    if (existingDate) {
+      existingDate.times.push(time);
+    } else {
+      court.dates.push({ year, month, date, times: [time] });
+    }
+  }
+
+  private createMarkdownMessage(courts: GroupedAvailableTime[]): string {
+    let msg = `## ${this.courtName}\n`;
+
+    courts.forEach((court, index) => {
+      msg += `### ${court.courtName}\n`;
+
+      court.dates.forEach((date) => {
+        msg += this.formatDateSection(date, court.url);
+      });
+
+      if (index !== courts.length - 1) {
+        msg += "--- \n";
+      }
+    });
+
+    return msg.trim();
+  }
+
+  private formatDateSection(date: DateWithTimes, url: string): string {
+    const targetDate = new Date();
+    targetDate.setFullYear(date.year, date.month - 1, date.date);
+    const formattedDate = format(targetDate, "MMM do (E)", { locale: ko });
+
+    let section = `- **${formattedDate}** \n`;
+
+    date.times.forEach((time, i) => {
+      section += `[${time}](${url})`;
+      section += (i + 1) % 4 === 0 ? "\n" : " ";
+    });
+
+    return section + "\n";
+  }
+
+  private handleError(context: string, error: unknown): void {
+    this.logger.error(context);
+    if (error instanceof Error) {
+      this.logger.error(error.message);
+    } else if (error) {
+      this.logger.error(String(error));
     }
   }
 }
