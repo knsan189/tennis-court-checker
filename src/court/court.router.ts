@@ -22,7 +22,7 @@ courtRouter.get("/", (req, res) => {
   }
 });
 
-courtRouter.get("/refresh", async (req, res) => {
+courtRouter.post("/refresh", async (req, res) => {
   try {
     const months = getTargetMonth();
     await courtService.fetchAvailableCourts(
