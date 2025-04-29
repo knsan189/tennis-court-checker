@@ -2,6 +2,7 @@ import { INTERVAL_TIME, LISTEN_PORT } from "./app/config.js";
 import CourtBot from "./court/court.bot.js";
 import app from "./app/app.js";
 import Logger from "./app/logger.js";
+import { getTargetMonth } from "./court/utils/getTargetMonth.js";
 
 const logger = Logger.getInstance();
 
@@ -22,20 +23,7 @@ const bot1 = new CourtBot({
 // });
 
 const startCheck = () => {
-  const date = new Date();
-  const thisMonth = date.getMonth() + 1;
-  const thisYear = date.getFullYear();
-
-  const targetCalendars = [
-    { month: thisMonth, year: thisYear },
-    {
-      month: thisMonth > 11 ? 1 : thisMonth + 1,
-      year: thisMonth > 11 ? thisYear + 1 : thisYear
-    }
-  ];
-
-  // bot2.init(targetCalendars);
-  bot1.init(targetCalendars);
+  bot1.init(getTargetMonth());
 };
 
 setInterval(() => startCheck(), 1000 * 60 * Number(INTERVAL_TIME));
