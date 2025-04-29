@@ -132,18 +132,14 @@ export default class CourtBot {
   }
 
   private createMarkdownMessage(courts: GroupedAvailableTime[]): string {
-    let msg = `## ${this.courtName}\n`;
+    let msg = ``;
 
-    courts.forEach((court, index) => {
+    courts.forEach((court) => {
       msg += `### ${court.courtName}\n`;
 
       court.dates.forEach((date) => {
         msg += this.formatDateSection(date);
       });
-
-      if (index !== courts.length - 1) {
-        msg += "--- \n";
-      }
     });
 
     return msg.trim();
@@ -158,7 +154,7 @@ export default class CourtBot {
 
     date.times.forEach((time, i) => {
       // section += `[${time}](${url})`;
-      section += time;
+      section += `${time} `;
       section += (i + 1) % 4 === 0 ? "\n" : " ";
     });
 
