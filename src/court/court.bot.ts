@@ -138,7 +138,7 @@ export default class CourtBot {
       msg += `### ${court.courtName}\n`;
 
       court.dates.forEach((date) => {
-        msg += this.formatDateSection(date, court.url);
+        msg += this.formatDateSection(date);
       });
 
       if (index !== courts.length - 1) {
@@ -149,7 +149,7 @@ export default class CourtBot {
     return msg.trim();
   }
 
-  private formatDateSection(date: DateWithTimes, url: string): string {
+  private formatDateSection(date: DateWithTimes): string {
     const targetDate = new Date();
     targetDate.setFullYear(date.year, date.month - 1, date.date);
     const formattedDate = format(targetDate, "MMM do (E)", { locale: ko });
@@ -157,7 +157,8 @@ export default class CourtBot {
     let section = `- **${formattedDate}** \n`;
 
     date.times.forEach((time, i) => {
-      section += `[${time}](${url})`;
+      // section += `[${time}](${url})`;
+      section += time;
       section += (i + 1) % 4 === 0 ? "\n" : " ";
     });
 
