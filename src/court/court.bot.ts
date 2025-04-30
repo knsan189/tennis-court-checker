@@ -154,8 +154,8 @@ export default class CourtBot {
 
     date.times.forEach((time, i) => {
       // section += `[${time}](${url})`;
-      section += `${time} `;
-      section += (i + 1) % 4 === 0 ? "\n" : " ";
+      section += `${time}`;
+      section += (i + 1) % 4 === 0 ? "\n" : " / ";
     });
 
     return section + "\n";
