@@ -30,9 +30,15 @@ steps:
     environment:
       SSH_PRIVATE_KEY:
         from_secret: SSH_PRIVATE_KEY
+      DEPLOY_HOST:
+        from_secret: DEPLOY_HOST
+      DEPLOY_USER:
+        from_secret: DEPLOY_USER
+      SSH_PORT:
+        from_secret: SSH_PORT
     commands:
       - apk add --no-cache openssh
       - mkdir -p ~/.ssh
       - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
       - chmod 600 ~/.ssh/id_rsa
-      - ssh -p 3922 -o StrictHostKeyChecking=no jin@haneul.app "pm2 restart tennis-court-bot"
+      - ssh -p $SSH_PORT -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST "pm2 restart tennis-court-bot"
