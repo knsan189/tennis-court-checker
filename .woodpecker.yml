@@ -1,0 +1,38 @@
+clone:
+  git:
+    image: woodpeckerci/plugin-git
+    volumes:
+      - /home/jin:/app
+      - /home/jin/.ssh:/root/.ssh:ro
+    commands:
+      - cd /app/tennis/bot1
+      - git config --system --add safe.directory /app/tennis/bot1
+      - git pull
+
+steps:
+  - name: build
+    image: node:lts
+    volumes:
+      - /home/jin:/app
+    commands:
+      - cd /app/tennis/bot1
+      - npm install
+      - npm run build
+    when:
+      event:
+        - push
+
+  - name: deploy
+    image: alpine
+    when:
+      event:
+        - push
+    environment:
+      SSH_PRIVATE_KEY:
+        from_secret: SSH_PRIVATE_KEY
+    commands:
+      - apk add --no-cache openssh
+      - mkdir -p ~/.ssh
+      - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+      - chmod 600 ~/.ssh/id_rsa
+      - ssh -p 3922 -o StrictHostKeyChecking=no jin@haneul.app "pm2 restart tennis-court-bot"
