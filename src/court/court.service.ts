@@ -3,6 +3,8 @@ import HTMLParser from "./utils/htmlParser.js";
 import { CourtAvailableTime } from "./entities/court.entity.js";
 import { CalendarEntity } from "./entities/calender.entity.js";
 import { COURT_VIEW_URL } from "./court.config.js";
+import http from "http";
+import https from "https";
 
 export default class CourtService {
   private axios: AxiosInstance;
@@ -21,7 +23,10 @@ export default class CourtService {
 
   constructor() {
     this.axios = Axios.create({
-      baseURL: COURT_VIEW_URL
+      baseURL: COURT_VIEW_URL,
+      httpAgent: new http.Agent({ keepAlive: true }),
+      httpsAgent: new https.Agent({ keepAlive: true }),
+      timeout: 10000
     });
   }
 

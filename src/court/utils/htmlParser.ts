@@ -109,7 +109,7 @@ class HTMLParser {
     courtNumber: string
   ): Promise<CourtAvailableTime[]> {
     try {
-      this.$ = cheerio.load(htmlString);
+      this.$ = cheerio.load(htmlString, null, false);
 
       // Initialize state
       this.calendar = calendar;
@@ -128,21 +128,21 @@ class HTMLParser {
   private extractAvailableTimes(): CourtAvailableTime[] {
     const availableTimes: CourtAvailableTime[] = [];
 
-    this.$("td", this.$(".calendar")).each((_, tdElement) => {
-      const td = this.$(tdElement);
-      const day = Number(this.$("span.day", td).text().trim());
+    const tdElements = this.$(".calendar td").toArray();
 
-      if (!day) return; // Skip cells without valid dates
+    for (const tdElement of tdElements) {
+      const td = this.$(tdElement);
+      const dayText = this.$("span.day", td).text().trim();
+      const day = Number(dayText);
+
+      if (!day) continue;
 
       if (this.isWeekend(day) || this.isHoliday(day)) {
         availableTimes.push(...this.processWeekendOrHoliday(td, day));
-        return;
-      }
-
-      if (this.isWednesday(day)) {
+      } else if (this.isWednesday(day)) {
         availableTimes.push(...this.processWednesday(td, day));
       }
-    });
+    }
 
     return availableTimes;
   }
