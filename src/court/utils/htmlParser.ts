@@ -10,6 +10,7 @@ class HTMLParser {
   private readonly NIGHT_TIMES = ["19:00", "20:00", "21:00"];
   private readonly WEEKEND_DAYS = [0, 6];
   private readonly WEDNESDAY = 3;
+  private readonly DEFAULT_START_HOUR = 15; // 기본 시작 시간 (오후 3시)
 
   private courtName = "";
   private courtType = "";
@@ -17,6 +18,7 @@ class HTMLParser {
   private courtNumber = "";
   private holidays: Holiday[] = [];
   private $: cheerio.CheerioAPI = cheerio.load("");
+  private startHour: number = this.DEFAULT_START_HOUR;
 
   private readonly holidayService = HolidayService.getInstance();
 
@@ -27,6 +29,18 @@ class HTMLParser {
       HTMLParser.instance = new HTMLParser();
     }
     return HTMLParser.instance;
+  }
+
+  public setStartHour(hour: number): void {
+    if (hour >= 0 && hour <= 23) {
+      this.startHour = hour;
+    } else {
+      throw new Error("Start hour must be between 0 and 23");
+    }
+  }
+
+  public getStartHour(): number {
+    return this.startHour;
   }
 
   private createDateForCalendar(day: number): Date {
@@ -82,7 +96,10 @@ class HTMLParser {
     const availableTimes: CourtAvailableTime[] = [];
     this.$("li.blu", this.$("ul", td)).each((_, element) => {
       const time = this.parseListItem(this.$(element));
-      availableTimes.push(this.createCourtAvailability(day, time));
+      const startTime = time.split("~")[0];
+      if (parseInt(startTime.split(":")[0]) >= this.startHour) {
+        availableTimes.push(this.createCourtAvailability(day, time));
+      }
     });
     return availableTimes;
   }
