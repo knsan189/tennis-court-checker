@@ -10,7 +10,7 @@ class HTMLParser {
   private readonly NIGHT_TIMES = ["19:00", "20:00", "21:00"];
   private readonly WEEKEND_DAYS = [0, 6];
   private readonly WEDNESDAY = 3;
-  private readonly DEFAULT_START_HOUR = 15; // 기본 시작 시간 (오후 3시)
+  private readonly DEFAULT_START_HOUR = 16; // 기본 시작 시간 (오후 4시)
 
   private courtName = "";
   private courtType = "";
